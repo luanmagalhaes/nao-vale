@@ -2,21 +2,18 @@ import { copy } from "@/data/copy";
 
 type Size = "lg" | "md" | "sm";
 
-const scales: Record<Size, { row: string; badge: string; tagline: string }> = {
+const scales: Record<Size, { row: string; badge: string }> = {
   lg: {
-    row: "text-[19vw] leading-[0.82] sm:text-[7rem]",
+    row: "text-[17vw] leading-[1.02] sm:text-[6.5rem]",
     badge: "text-base px-4 py-1.5",
-    tagline: "text-sm",
   },
   md: {
-    row: "text-[13vw] leading-[0.82] sm:text-[4.5rem]",
+    row: "text-[12vw] leading-[1.02] sm:text-[4.25rem]",
     badge: "text-sm px-3 py-1",
-    tagline: "text-xs",
   },
   sm: {
-    row: "text-[8vw] leading-[0.85] sm:text-3xl",
+    row: "text-[7.5vw] leading-[1.05] sm:text-3xl",
     badge: "text-[10px] px-2 py-0.5",
-    tagline: "text-[10px]",
   },
 };
 
@@ -30,14 +27,14 @@ export function Wordmark({
   const scale = scales[size];
 
   return (
-    <div className="flex flex-col items-center select-none">
+    <div className="flex select-none flex-col items-center px-[0.2em]">
       <span
-        className={`font-display text-cream outline-text ${scale.row} -rotate-3`}
+        className={`font-display text-cream outline-text inline-block px-[0.08em] ${scale.row} -rotate-3`}
       >
         {copy.brand.firstLine}
       </span>
       <span
-        className={`font-display text-fire outline-text ${scale.row} rotate-2 -mt-[0.12em]`}
+        className={`font-display text-fire outline-text -mt-[0.22em] inline-block px-[0.08em] ${scale.row} rotate-2`}
       >
         {copy.brand.secondLine}
       </span>

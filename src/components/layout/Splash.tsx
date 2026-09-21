@@ -47,7 +47,7 @@ export function Splash({ leaving }: { leaving: boolean }) {
       ))}
 
       <div
-        className="relative z-10"
+        className="relative z-10 w-full px-4 py-6"
         style={{ animation: "bounce-in 0.9s 0.1s both" }}
       >
         <Wordmark size="lg" />
