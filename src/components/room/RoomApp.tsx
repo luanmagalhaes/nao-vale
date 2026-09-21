@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { HowToPlay } from "@/components/game/HowToPlay";
 import { LobbyScreen } from "@/components/room/LobbyScreen";
 import { TurnScreen } from "@/components/room/TurnScreen";
 import { VictoryScreen } from "@/components/room/VictoryScreen";
 import { Button } from "@/components/ui/Button";
+import { SoundToggle } from "@/components/ui/SoundToggle";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { useRoom } from "@/hooks/useRoom";
 import {
+  guardarSessao,
   inscrever,
   lerSessao,
   limparSessao,
@@ -18,9 +20,24 @@ import {
 
 export function RoomApp({ code }: { code: string }) {
   const router = useRouter();
+  const parametros = useSearchParams();
+  const convite = parametros.get("t");
   const [tutorial, setTutorial] = useState(false);
   const sessao = useSyncExternalStore(inscrever, lerSessao, sessaoDoServidor);
-  const token = sessao?.code === code ? sessao.token : null;
+  const token = sessao?.code === code ? sessao.token : convite;
+
+  useEffect(() => {
+    if (!convite) {
+      return;
+    }
+
+    const aplicar = setTimeout(() => {
+      guardarSessao({ code, token: convite, playerId: "" }, true);
+      router.replace(`/sala/${code}`);
+    }, 0);
+
+    return () => clearTimeout(aplicar);
+  }, [convite, code, router]);
   const { estado, erro, carregando, atualizar } = useRoom(code, token);
 
   if (!token) {
@@ -68,6 +85,8 @@ export function RoomApp({ code }: { code: string }) {
 
   return (
     <>
+      <SoundToggle />
+
       {estado.room.status === "lobby" ? (
         <LobbyScreen
           estado={estado}

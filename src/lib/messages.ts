@@ -13,8 +13,8 @@ export const mensagens = {
   401: "Você não está nessa sala.",
   403: "Essa jogada não é sua.",
   404: "Essa sala não existe.",
-  409: "A sala mudou enquanto você jogava. Recarrega aí.",
-  500: "Deu ruim aqui do nosso lado. Tenta de novo.",
+  409: "A sala mudou enquanto você jogava. Recarregue a página.",
+  500: "Deu ruim aqui do nosso lado. Tente de novo.",
 } as const;
 
 export function mensagemPara(status: number): string {

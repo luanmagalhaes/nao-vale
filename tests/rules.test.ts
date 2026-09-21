@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  distribuirTimes,
   jogoAcabou,
   placar,
   podeComecar,
   proximoTurno,
   scoringTeam,
+  semTime,
   timeAdversario,
   vencedor,
 } from "@/lib/game/rules";
@@ -121,6 +123,52 @@ describe("abertura da sala", () => {
     ];
 
     expect(podeComecar(trio)).toBe(false);
+  });
+
+  it("não deixa começar com gente sem time", () => {
+    const mesa = [
+      jogador({ id: "a", team: "vermelho", seat: 0 }),
+      jogador({ id: "b", team: "azul", seat: 1 }),
+      jogador({ id: "c", team: "vermelho", seat: 2 }),
+      jogador({ id: "d", team: "azul", seat: 3 }),
+      jogador({ id: "e", team: null, seat: 4 }),
+    ];
+
+    expect(semTime(mesa)).toHaveLength(1);
+    expect(podeComecar(mesa)).toBe(false);
+  });
+});
+
+describe("sorteio de times", () => {
+  const mesa = Array.from({ length: 7 }, (_, indice) =>
+    jogador({ id: `p${indice}`, team: null, seat: indice }),
+  );
+
+  it("dá time para todo mundo", () => {
+    const mapa = distribuirTimes(mesa);
+
+    expect(mapa.size).toBe(mesa.length);
+    expect([...mapa.values()].every((time) => time !== null)).toBe(true);
+  });
+
+  it("deixa no máximo uma pessoa de diferença com número ímpar", () => {
+    const mapa = distribuirTimes(mesa);
+    const valores = [...mapa.values()];
+    const vermelho = valores.filter((time) => time === "vermelho").length;
+    const azul = valores.filter((time) => time === "azul").length;
+
+    expect(Math.abs(vermelho - azul)).toBe(1);
+    expect(vermelho + azul).toBe(7);
+  });
+
+  it("não manda as mesmas pessoas para o mesmo time toda vez", () => {
+    const rodadas = Array.from({ length: 24 }, () => {
+      const mapa = distribuirTimes(mesa);
+
+      return mesa.map((pessoa) => mapa.get(pessoa.id)).join(",");
+    });
+
+    expect(new Set(rodadas).size).toBeGreaterThan(1);
   });
 });
 

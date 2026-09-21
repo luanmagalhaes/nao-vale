@@ -44,6 +44,16 @@ button {
   touch-action: manipulation;
 }
 
+button:not(:disabled),
+label,
+[role="button"]:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 @utility bolinhas {
   background-image: radial-gradient(
     var(--color-mel) 1.6px,
@@ -177,7 +187,7 @@ button {
 
 @keyframes carta-entra {
   0% {
-    transform: translateY(40px) scale(0.7) rotate(-8deg);
+    transform: translateY(22px) scale(0.86) rotate(-4deg);
     opacity: 0;
   }
   100% {
@@ -257,6 +267,44 @@ button {
   100% {
     transform: scale(1.05) rotate(-3deg);
     opacity: 0;
+  }
+}
+
+@keyframes pisca-time {
+  0%,
+  100% {
+    background-color: var(--color-time-vermelho);
+    transform: rotate(-2deg) scale(1);
+  }
+  50% {
+    background-color: var(--color-time-azul);
+    transform: rotate(2deg) scale(1.06);
+  }
+}
+
+@keyframes nome-revela {
+  0% {
+    transform: translateX(-30px) scale(0.8);
+    opacity: 0;
+  }
+  70% {
+    transform: translateX(4px) scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes coluna-entra {
+  0% {
+    transform: translateY(40px) scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
   }
 }
 

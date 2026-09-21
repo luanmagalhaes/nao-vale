@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { CardView } from "@/components/game/CardView";
 import { ThumbArt } from "@/components/game/ThumbArt";
+import { PhonesArt } from "@/components/game/PhonesArt";
 import { deckSizes } from "@/data/deck";
 import { minPlayers } from "@/lib/game/rules";
 import type { Card } from "@/types/game";
@@ -32,7 +33,7 @@ interface Slide {
 
 const slides: Slide[] = [
   {
-    titulo: "O jogo em uma frase",
+    titulo: "Presta atenção, benção!",
     tom: "bg-ceu text-creme",
     arte: (
       <div className="flex items-center justify-center gap-2">
@@ -85,13 +86,7 @@ const slides: Slide[] = [
   {
     titulo: "O juiz é do outro time",
     tom: "bg-time-azul text-creme",
-    arte: (
-      <div className="flex items-end justify-center gap-2">
-        <div className="bg-creme traco h-20 w-12 rounded-lg" />
-        <span className="font-display text-3xl">=</span>
-        <div className="bg-creme traco h-20 w-12 rounded-lg" />
-      </div>
-    ),
+    arte: <PhonesArt />,
     corpo: (
       <div className="flex flex-col gap-3 text-center">
         <p className="text-base font-bold leading-snug">
@@ -297,7 +292,7 @@ export function HowToPlay({ onClose }: { onClose: () => void }) {
               cor={ultimo ? "fogo" : "tinta"}
               onClick={() => (ultimo ? onClose() : setPasso(passo + 1))}
             >
-              {ultimo ? "Bora jogar" : "Saquei"}
+              {ultimo ? "Valeu, pai. Entendido" : "Saquei"}
             </Button>
           </div>
         </div>

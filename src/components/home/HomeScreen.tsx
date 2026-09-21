@@ -3,10 +3,12 @@
 import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { SoundToggle } from "@/components/ui/SoundToggle";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { HowToPlay } from "@/components/game/HowToPlay";
 import { api } from "@/lib/api/client";
 import { copy } from "@/data/copy";
+import { tamanhoDoCodigo } from "@/lib/game/rules";
 import {
   guardarSessao,
   inscrever,
@@ -56,7 +58,7 @@ export function HomeScreen() {
   }
 
   function entrarNaSala() {
-    if (codigo.trim().length !== 4) {
+    if (codigo.trim().length !== tamanhoDoCodigo) {
       setErro(copy.erros.codigoCurto);
       return;
     }
@@ -66,6 +68,8 @@ export function HomeScreen() {
 
   return (
     <main className="bolinhas bg-banana flex min-h-dvh flex-col items-center px-6 pb-[calc(2rem+var(--safe-bottom))] pt-[calc(2.5rem+var(--safe-top))]">
+      <SoundToggle />
+
       <div style={{ animation: "sobe-suave 0.5s both" }}>
         <Wordmark tamanho="medio" />
       </div>
@@ -105,10 +109,16 @@ export function HomeScreen() {
               <input
                 value={codigo}
                 onChange={(evento) =>
-                  setCodigo(evento.target.value.toUpperCase().slice(0, 4))
+                  setCodigo(
+                    evento.target.value
+                      .replace(/\D/g, "")
+                      .slice(0, tamanhoDoCodigo),
+                  )
                 }
                 placeholder={copy.home.placeholderCodigo}
-                className="bg-creme traco sombra-dura font-display mt-2 w-full rounded-2xl px-4 py-3 text-center text-4xl tracking-[0.4em] outline-none placeholder:opacity-30"
+                inputMode="numeric"
+                autoComplete="off"
+                className="bg-creme traco sombra-dura font-display mt-2 w-full rounded-2xl px-4 py-3 text-center text-5xl tracking-[0.3em] outline-none placeholder:opacity-30"
               />
             </label>
             <Button cor="ceu" disabled={ocupado} onClick={entrarNaSala}>

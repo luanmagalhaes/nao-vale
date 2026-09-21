@@ -10,6 +10,11 @@ import type {
   TurnRow,
 } from "@/types/game";
 
+export interface ProximaCarta {
+  card: Card | null;
+  cardSeq: number;
+}
+
 export interface EstadoDaSala {
   room: RoomRow;
   players: PlayerRow[];
@@ -31,7 +36,7 @@ async function pedir<T>(url: string, init?: RequestInit): Promise<T> {
   const corpo = (await resposta.json()) as T & { error?: string };
 
   if (!resposta.ok) {
-    throw new Error(corpo.error ?? "Deu ruim aqui. Tenta de novo.");
+    throw new Error(corpo.error ?? "Deu ruim aqui. Tente de novo.");
   }
 
   return corpo;
@@ -101,14 +106,14 @@ export const api = {
   },
 
   resultado(code: string, token: string, outcome: Outcome) {
-    return pedir("/api/room/turn", {
+    return pedir<ProximaCarta>("/api/room/turn", {
       method: "POST",
       body: JSON.stringify({ code, token, action: "resultado", outcome }),
     });
   },
 
   desfazer(code: string, token: string) {
-    return pedir("/api/room/turn", {
+    return pedir<ProximaCarta>("/api/room/turn", {
       method: "POST",
       body: JSON.stringify({ code, token, action: "desfazer" }),
     });

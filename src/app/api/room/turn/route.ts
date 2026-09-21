@@ -1,15 +1,10 @@
-import {
-  handle,
-  jogadorPorToken,
-  lerCorpo,
-  salaPorCodigo,
-} from "@/app/api/_shared";
+import { handle, lerCorpo, salaPorCodigo } from "@/app/api/_shared";
 import { ServiceError, mensagemPara } from "@/lib/messages";
 import {
-  comecarTurno,
-  desfazerUltima,
+  desfazerJogada,
   encerrarTurno,
-  registrarResultado,
+  iniciarTurno,
+  jogarCarta,
 } from "@/lib/game/service";
 import type { Outcome } from "@/types/game";
 
@@ -28,26 +23,23 @@ export async function POST(request: Request) {
       throw new ServiceError(400, mensagemPara(400));
     }
 
-    const sala = await salaPorCodigo(corpo.code);
-    const eu = await jogadorPorToken(sala.id, corpo.token);
-
     if (corpo.action === "comecar") {
-      await comecarTurno(sala, eu);
-      return { ok: true };
+      return iniciarTurno(corpo.code, corpo.token);
     }
 
     if (corpo.action === "resultado" && corpo.outcome) {
-      await registrarResultado(sala, eu, corpo.outcome);
-      return { ok: true };
+      return jogarCarta(corpo.code, corpo.token, corpo.outcome);
     }
 
     if (corpo.action === "desfazer") {
-      await desfazerUltima(sala, eu);
-      return { ok: true };
+      return desfazerJogada(corpo.code, corpo.token);
     }
 
     if (corpo.action === "encerrar") {
+      const sala = await salaPorCodigo(corpo.code);
+
       await encerrarTurno(sala);
+
       return { ok: true };
     }
 

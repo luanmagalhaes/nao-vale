@@ -1,6 +1,7 @@
 "use client";
 
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, MouseEvent } from "react";
+import { tocar } from "@/lib/sound";
 
 type Cor = "banana" | "tangerina" | "fogo" | "ceu" | "creme" | "tinta";
 
@@ -23,10 +24,17 @@ export function Button({
   largura = "cheia",
   className = "",
   children,
+  onClick,
   ...resto
 }: Props) {
+  function aoClicar(evento: MouseEvent<HTMLButtonElement>) {
+    tocar("tap");
+    onClick?.(evento);
+  }
+
   return (
     <button
+      onClick={aoClicar}
       className={`font-display traco sombra-dura rounded-2xl px-6 py-4 text-2xl uppercase tracking-wide transition-transform duration-100 active:translate-x-[3px] active:translate-y-[3px] active:shadow-[2px_2px_0_var(--color-tinta)] disabled:opacity-50 ${
         cores[cor]
       } ${largura === "cheia" ? "w-full" : ""} ${className}`}

@@ -15,14 +15,14 @@ export const copy = {
     criar: "Criar sala",
     entrar: "Entrar numa sala",
     campoCodigo: "Código da sala",
-    placeholderCodigo: "ABCD",
+    placeholderCodigo: "00",
     confirmarEntrada: "Entrar",
     voltar: "Voltar",
     regras: "Como se joga",
   },
   erros: {
-    nomeVazio: "Escreve seu nome primeiro.",
-    codigoCurto: "O código tem 4 letras.",
-    semRede: "A internet sumiu. Tenta de novo.",
+    nomeVazio: "Escreva seu nome primeiro.",
+    codigoCurto: "O código tem 2 números.",
+    semRede: "A internet sumiu. Tente de novo.",
   },
 } as const;

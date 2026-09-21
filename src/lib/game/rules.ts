@@ -62,8 +62,16 @@ export function timesEquilibrados(players: readonly PlayerRow[]): boolean {
   return vermelho >= 2 && azul >= 2;
 }
 
+export function semTime(players: readonly PlayerRow[]): PlayerRow[] {
+  return players.filter((jogador) => jogador.team === null);
+}
+
 export function podeComecar(players: readonly PlayerRow[]): boolean {
-  return players.length >= minPlayers && timesEquilibrados(players);
+  return (
+    players.length >= minPlayers &&
+    semTime(players).length === 0 &&
+    timesEquilibrados(players)
+  );
 }
 
 export interface PlanoDeTurno {
@@ -130,23 +138,18 @@ export function embaralhar<T>(itens: readonly T[]): T[] {
   return copia;
 }
 
-export function gerarCodigo(): string {
-  const letras = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+export const tamanhoDoCodigo = 2;
 
-  return Array.from(
-    { length: 4 },
-    () => letras[Math.floor(Math.random() * letras.length)],
-  ).join("");
+export function gerarCodigo(): string {
+  return String(10 + Math.floor(Math.random() * 90));
 }
 
 export function distribuirTimes(players: readonly PlayerRow[]): Map<string, Team> {
   const mapa = new Map<string, Team>();
 
-  [...players]
-    .sort((a, b) => a.seat - b.seat)
-    .forEach((jogador, indice) => {
-      mapa.set(jogador.id, indice % 2 === 0 ? "vermelho" : "azul");
-    });
+  embaralhar(players).forEach((jogador, indice) => {
+    mapa.set(jogador.id, indice % 2 === 0 ? "vermelho" : "azul");
+  });
 
   return mapa;
 }

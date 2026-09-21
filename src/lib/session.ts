@@ -29,7 +29,8 @@ export function inscrever(ouvinte: () => void) {
 }
 
 export function lerSessao(): Sessao | null {
-  const bruto = window.localStorage.getItem(chave);
+  const bruto =
+    window.sessionStorage.getItem(chave) ?? window.localStorage.getItem(chave);
 
   if (bruto !== cacheBruto) {
     cacheBruto = bruto;
@@ -48,12 +49,15 @@ export function sessaoDoServidor(): Sessao | null {
   return null;
 }
 
-export function guardarSessao(sessao: Sessao) {
-  window.localStorage.setItem(chave, JSON.stringify(sessao));
+export function guardarSessao(sessao: Sessao, apenasNestaAba = false) {
+  const destino = apenasNestaAba ? window.sessionStorage : window.localStorage;
+
+  destino.setItem(chave, JSON.stringify(sessao));
   avisar();
 }
 
 export function limparSessao() {
+  window.sessionStorage.removeItem(chave);
   window.localStorage.removeItem(chave);
   avisar();
 }

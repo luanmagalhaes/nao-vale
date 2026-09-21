@@ -22,7 +22,9 @@ export function useRoom(code: string | null, token: string | null) {
       setEstado(proximo);
       setErro(null);
     } catch (falha) {
-      setErro(falha instanceof Error ? falha.message : "Deu ruim.");
+      setErro(
+        falha instanceof Error ? falha.message : "Deu ruim aqui. Tente de novo.",
+      );
     }
   }, [code, token]);
 

@@ -6,8 +6,8 @@ Você faz seu time adivinhar a palavra da carta sem usar nenhuma das cinco proib
 
 ## Como funciona uma partida
 
-1. Alguém cria a sala e passa o código de 4 letras para a mesa
-2. Todo mundo entra e se divide entre time vermelho e time azul
+1. Alguém cria a sala e passa o código de 2 números para a mesa
+2. Todo mundo entra e o dono sorteia os times
 3. O dono da sala escolhe o baralho e começa
 4. Cada pessoa tem 60 segundos explicando cartas para o próprio time
 5. A partida acaba quando todo mundo já explicou uma vez. Ganha quem tiver mais cartas

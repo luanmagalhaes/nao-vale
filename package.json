@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "icons": "node scripts/icons/generate.mjs"
+    "icons": "node scripts/icons/generate.mjs",
+    "sounds": "node scripts/sounds/generate.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",

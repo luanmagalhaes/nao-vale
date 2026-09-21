@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Scoreboard } from "@/components/room/Scoreboard";
 import { api, type EstadoDaSala } from "@/lib/api/client";
 import { vencedor } from "@/lib/game/rules";
+import { tocar } from "@/lib/sound";
 import type { Team } from "@/types/game";
 
 const coresDoConfete = [
@@ -57,6 +58,10 @@ export function VictoryScreen({
   const [erro, setErro] = useState("");
   const campeao = vencedor(estado.score);
 
+  useEffect(() => {
+    tocar("win");
+  }, []);
+
   return (
     <main className="bolinhas bg-banana relative flex min-h-dvh flex-col items-center justify-center gap-5 overflow-hidden px-5 pb-[calc(2rem+var(--safe-bottom))] pt-[calc(2rem+var(--safe-top))]">
       {confetes.map((confete, indice) => (
@@ -98,7 +103,11 @@ export function VictoryScreen({
               try {
                 await api.reiniciar(estado.room.code, token);
               } catch (falha) {
-                setErro(falha instanceof Error ? falha.message : "Deu ruim.");
+                setErro(
+                  falha instanceof Error
+                    ? falha.message
+                    : "Deu ruim aqui. Tente de novo.",
+                );
               }
             }}
           >

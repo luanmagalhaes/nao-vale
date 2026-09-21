@@ -27,21 +27,38 @@ function falha(status: number): never {
   throw new ServiceError(status, mensagemPara(status));
 }
 
-async function codigoLivre(): Promise<string> {
-  for (let tentativa = 0; tentativa < 12; tentativa += 1) {
-    const code = gerarCodigo();
-    const { data } = await serverClient()
-      .from("nv_rooms")
-      .select("id")
-      .eq("code", code)
-      .maybeSingle();
+const horasParaReciclar = 8;
 
-    if (!data) {
-      return code;
+async function reciclarSalasParadas() {
+  const limite = new Date(
+    Date.now() - horasParaReciclar * 60 * 60 * 1000,
+  ).toISOString();
+
+  await serverClient().from("nv_rooms").delete().lt("updated_at", limite);
+}
+
+async function codigoLivre(): Promise<string> {
+  for (let rodada = 0; rodada < 2; rodada += 1) {
+    for (let tentativa = 0; tentativa < 40; tentativa += 1) {
+      const code = gerarCodigo();
+      const { data } = await serverClient()
+        .from("nv_rooms")
+        .select("id")
+        .eq("code", code)
+        .maybeSingle();
+
+      if (!data) {
+        return code;
+      }
     }
+
+    await reciclarSalasParadas();
   }
 
-  falha(500);
+  throw new ServiceError(
+    409,
+    "Todas as salas estão ocupadas agora. Espera alguém terminar.",
+  );
 }
 
 async function criarSegredo(playerId: string): Promise<string> {
@@ -78,7 +95,7 @@ export async function criarSala(name: string, deckMode: DeckMode) {
     .insert({
       room_id: (sala as RoomRow).id,
       name: nome,
-      team: "vermelho",
+      team: null,
       is_host: true,
       seat: 0,
     })
@@ -134,7 +151,7 @@ export async function entrarNaSala(code: string, name: string) {
     .insert({
       room_id: sala.id,
       name: nome,
-      team: seat % 2 === 0 ? "vermelho" : "azul",
+      team: null,
       seat,
     })
     .select("*")
@@ -404,33 +421,62 @@ export async function comecarJogo(sala: RoomRow, eu: PlayerRow) {
     .eq("id", sala.id);
 }
 
-export async function comecarTurno(sala: RoomRow, eu: PlayerRow) {
-  const turno = await turnoDaSala(sala);
+const errosDoBanco: Record<string, { status: number; texto: string }> = {
+  sala: { status: 404, texto: "Essa sala não existe." },
+  jogador: { status: 401, texto: "Você não está nessa sala." },
+  turno: { status: 409, texto: "A rodada mudou. Recarregue a página." },
+  permissao: { status: 403, texto: "Essa jogada não é sua." },
+  carta: { status: 409, texto: "Nenhuma carta em jogo agora." },
+  vazio: { status: 409, texto: "Não tem jogada para desfazer neste turno." },
+};
 
-  if (turno.speaker_id !== eu.id) {
-    falha(403);
+interface RespostaDeCarta {
+  cardId?: string | null;
+  cardSeq?: number;
+  error?: string;
+}
+
+async function chamarJogada(
+  funcao: string,
+  argumentos: Record<string, string>,
+): Promise<{ card: Card | null; cardSeq: number }> {
+  const { data, error } = await serverClient().rpc(funcao, argumentos);
+
+  if (error) {
+    falha(500);
   }
 
-  if (turno.status !== "ready") {
-    falha(409);
+  const resposta = data as RespostaDeCarta;
+
+  if (resposta?.error) {
+    const conhecido = errosDoBanco[resposta.error];
+
+    throw new ServiceError(
+      conhecido?.status ?? 409,
+      conhecido?.texto ?? mensagemPara(409),
+    );
   }
 
-  const cardId = await puxarCarta(sala);
-  const agora = Date.now();
+  return {
+    card: resposta.cardId ? cardById(resposta.cardId) : null,
+    cardSeq: resposta.cardSeq ?? 0,
+  };
+}
 
-  await serverClient()
-    .from("nv_turn_state")
-    .upsert({ turn_id: turno.id, card_id: cardId });
+export function iniciarTurno(code: string, token: string) {
+  return chamarJogada("nv_start_turn", { p_code: code, p_secret: token });
+}
 
-  await serverClient()
-    .from("nv_turns")
-    .update({
-      status: "running",
-      started_at: new Date(agora).toISOString(),
-      ends_at: new Date(agora + sala.turn_seconds * 1000).toISOString(),
-      card_seq: turno.card_seq + 1,
-    })
-    .eq("id", turno.id);
+export function jogarCarta(code: string, token: string, outcome: Outcome) {
+  return chamarJogada("nv_play", {
+    p_code: code,
+    p_secret: token,
+    p_outcome: outcome,
+  });
+}
+
+export function desfazerJogada(code: string, token: string) {
+  return chamarJogada("nv_undo", { p_code: code, p_secret: token });
 }
 
 async function turnoDaSala(sala: RoomRow): Promise<TurnRow> {
@@ -496,6 +542,7 @@ export async function registrarResultado(
   }
 
   const proxima = await puxarCarta(sala);
+  const seq = turno.card_seq + 1;
 
   await serverClient()
     .from("nv_turn_state")
@@ -503,8 +550,10 @@ export async function registrarResultado(
 
   await serverClient()
     .from("nv_turns")
-    .update({ card_seq: turno.card_seq + 1 })
+    .update({ card_seq: seq })
     .eq("id", turno.id);
+
+  return { card: cardById(proxima), cardSeq: seq };
 }
 
 export async function desfazerUltima(sala: RoomRow, eu: PlayerRow) {
@@ -546,14 +595,18 @@ export async function desfazerUltima(sala: RoomRow, eu: PlayerRow) {
     await devolverAoFim(sala, atual.card_id);
   }
 
+  const seq = turno.card_seq + 1;
+
   await serverClient()
     .from("nv_turn_state")
     .upsert({ turn_id: turno.id, card_id: ultimo.card_id });
 
   await serverClient()
     .from("nv_turns")
-    .update({ card_seq: turno.card_seq + 1 })
+    .update({ card_seq: seq })
     .eq("id", turno.id);
+
+  return { card: cardById(ultimo.card_id), cardSeq: seq };
 }
 
 export async function encerrarTurno(sala: RoomRow) {

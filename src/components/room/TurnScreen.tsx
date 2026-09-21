@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { api, type EstadoDaSala } from "@/lib/api/client";
 import { useNow } from "@/hooks/useNow";
 import { timeAdversario } from "@/lib/game/rules";
-import type { Outcome, Team } from "@/types/game";
+import { tocar } from "@/lib/sound";
+import type { Card, Outcome, Team } from "@/types/game";
 
 function nomeDe(estado: EstadoDaSala, id: string | null | undefined) {
   return estado.players.find((jogador) => jogador.id === id)?.name ?? "alguém";
@@ -23,6 +24,10 @@ export function TurnScreen({
   onAtualizar: () => void;
 }) {
   const [saindo, setSaindo] = useState<Team | null>(null);
+  const [cartaLocal, setCartaLocal] = useState<{
+    card: Card;
+    seq: number;
+  } | null>(null);
   const [carimbo, setCarimbo] = useState(false);
   const [erro, setErro] = useState("");
   const [ocupado, setOcupado] = useState(false);
@@ -36,6 +41,12 @@ export function TurnScreen({
   const souFalante = turn?.speaker_id === me.id;
   const souJuiz = turn?.judge_id === me.id;
   const timeDoTurno = (turn?.team ?? "vermelho") as Team;
+
+  const localNaFrente =
+    cartaLocal !== null && turn !== null && cartaLocal.seq >= turn.card_seq;
+  const cartaEmJogo = localNaFrente && cartaLocal ? cartaLocal.card : card;
+  const seqEmJogo =
+    localNaFrente && cartaLocal ? cartaLocal.seq : (turn?.card_seq ?? 0);
 
   const fim = turn?.ends_at ? new Date(turn.ends_at).getTime() : 0;
   const restante = rodando ? Math.max(0, Math.ceil((fim - agora) / 1000)) : room.turn_seconds;
@@ -55,6 +66,21 @@ export function TurnScreen({
       return;
     }
 
+    const souAutor =
+      ultimo.outcome === "queima"
+        ? turn?.judge_id === me.id
+        : turn?.speaker_id === me.id;
+
+    if (!souAutor) {
+      tocar(
+        ultimo.outcome === "acerto"
+          ? "right"
+          : ultimo.outcome === "queima"
+            ? "buzz"
+            : "skip",
+      );
+    }
+
     if (ultimo.outcome === "queima") {
       const aparecer = setTimeout(() => setCarimbo(true), 0);
       const sumir = setTimeout(() => setCarimbo(false), 1300);
@@ -64,7 +90,31 @@ export function TurnScreen({
         clearTimeout(sumir);
       };
     }
-  }, [estado.results]);
+  }, [estado.results, turn?.judge_id, turn?.speaker_id, me.id]);
+
+  useEffect(() => {
+    if (!rodando || seqEmJogo <= 0) {
+      return;
+    }
+
+    tocar("card");
+  }, [seqEmJogo, rodando]);
+
+  useEffect(() => {
+    if (!rodando || restante > 10 || restante <= 0) {
+      return;
+    }
+
+    tocar("tick");
+  }, [restante, rodando]);
+
+  useEffect(() => {
+    if (!acabou) {
+      return;
+    }
+
+    tocar("timeup");
+  }, [acabou]);
 
   useEffect(() => {
     if (!acabou || encerrando.current) {
@@ -97,13 +147,19 @@ export function TurnScreen({
       await executar();
       onAtualizar();
     } catch (falha) {
-      setErro(falha instanceof Error ? falha.message : "Deu ruim.");
+      setErro(
+        falha instanceof Error ? falha.message : "Deu ruim aqui. Tente de novo.",
+      );
     } finally {
       setOcupado(false);
     }
   }
 
-  function registrar(outcome: Outcome) {
+  async function registrar(outcome: Outcome) {
+    if (ocupado) {
+      return;
+    }
+
     const destino =
       outcome === "acerto"
         ? timeDoTurno
@@ -112,9 +168,55 @@ export function TurnScreen({
           : null;
 
     setSaindo(destino);
-    setTimeout(() => setSaindo(null), 550);
+    setOcupado(true);
+    tocar(
+      outcome === "acerto" ? "right" : outcome === "queima" ? "buzz" : "skip",
+    );
 
-    void despachar(() => api.resultado(room.code, token, outcome));
+    try {
+      setErro("");
+
+      const [proxima] = await Promise.all([
+        api.resultado(room.code, token, outcome),
+        new Promise((resolver) => setTimeout(resolver, 190)),
+      ]);
+
+      setCartaLocal(
+        proxima.card ? { card: proxima.card, seq: proxima.cardSeq } : null,
+      );
+      setSaindo(null);
+      onAtualizar();
+    } catch (falha) {
+      setSaindo(null);
+      setErro(
+        falha instanceof Error ? falha.message : "Deu ruim aqui. Tente de novo.",
+      );
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  async function desfazer() {
+    if (ocupado) {
+      return;
+    }
+
+    setOcupado(true);
+
+    try {
+      setErro("");
+      const anterior = await api.desfazer(room.code, token);
+      setCartaLocal(
+        anterior.card ? { card: anterior.card, seq: anterior.cardSeq } : null,
+      );
+      onAtualizar();
+    } catch (falha) {
+      setErro(
+        falha instanceof Error ? falha.message : "Deu ruim aqui. Tente de novo.",
+      );
+    } finally {
+      setOcupado(false);
+    }
   }
 
   if (!turn) {
@@ -169,8 +271,8 @@ export function TurnScreen({
 
       {rodando ? (
         <div className="relative flex flex-1 flex-col items-center justify-center gap-4">
-          {card ? (
-            <CardView card={card} chave={turn.card_seq} saindo={saindo} />
+          {cartaEmJogo ? (
+            <CardView card={cartaEmJogo} chave={seqEmJogo} saindo={saindo} />
           ) : (
             <div className="bg-creme traco sombra-dura-g flex h-72 w-full max-w-xs items-center justify-center rounded-3xl px-6">
               <p className="font-display text-tinta text-center text-xl uppercase leading-tight">
@@ -229,7 +331,7 @@ export function TurnScreen({
             <button
               type="button"
               disabled={ocupado}
-              onClick={() => despachar(() => api.desfazer(room.code, token))}
+              onClick={() => void desfazer()}
               className="font-display bg-tinta text-banana traco-fino rounded-xl px-4 py-2 text-base uppercase disabled:opacity-50"
             >
               Desfazer última jogada

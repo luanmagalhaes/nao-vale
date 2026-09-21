@@ -1,13 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { TeamDraw } from "@/components/room/TeamDraw";
 import { api, type EstadoDaSala } from "@/lib/api/client";
 import { deckSizes } from "@/data/deck";
-import { minPlayers, podeComecar } from "@/lib/game/rules";
+import { minPlayers, podeComecar, semTime } from "@/lib/game/rules";
 import type { DeckMode, Team } from "@/types/game";
 
-const baralhos: { modo: DeckMode; nome: string; descricao: string; total: number }[] = [
+const baralhos: {
+  modo: DeckMode;
+  nome: string;
+  descricao: string;
+  total: number;
+}[] = [
   {
     modo: "suave",
     nome: "De boa",
@@ -44,15 +50,51 @@ export function LobbyScreen({
 }) {
   const [copiado, setCopiado] = useState(false);
   const [erro, setErro] = useState("");
+  const [sorteando, setSorteando] = useState(false);
+  const [mostrarSorteio, setMostrarSorteio] = useState(false);
+  const semTimeAntes = useRef<number | null>(null);
+
   const { room, players, me } = estado;
   const pronto = podeComecar(players);
+  const aguardando = semTime(players);
+  const jaSorteado = aguardando.length === 0 && players.length > 0;
+
+  useEffect(() => {
+    const antes = semTimeAntes.current;
+    semTimeAntes.current = aguardando.length;
+
+    if (antes === null || antes === 0 || aguardando.length > 0) {
+      return;
+    }
+
+    const abrir = setTimeout(() => setMostrarSorteio(true), 0);
+
+    return () => clearTimeout(abrir);
+  }, [aguardando.length]);
 
   async function acao(executar: () => Promise<unknown>) {
     try {
       setErro("");
       await executar();
     } catch (falha) {
-      setErro(falha instanceof Error ? falha.message : "Deu ruim.");
+      setErro(
+        falha instanceof Error ? falha.message : "Deu ruim aqui. Tente de novo.",
+      );
+    }
+  }
+
+  async function sortear() {
+    setSorteando(true);
+
+    try {
+      setErro("");
+      await api.sortearTimes(room.code, token);
+    } catch (falha) {
+      setErro(
+        falha instanceof Error ? falha.message : "Deu ruim aqui. Tente de novo.",
+      );
+    } finally {
+      setSorteando(false);
     }
   }
 
@@ -78,49 +120,87 @@ export function LobbyScreen({
         </span>
       </button>
 
-      <section className="w-full max-w-sm">
-        <h2 className="font-display text-tinta mb-2 text-lg uppercase">
-          Quem está na mesa ({players.length})
-        </h2>
-        <div className="flex flex-col gap-2">
-          {(["vermelho", "azul"] as const).map((time) => (
-            <div
-              key={time}
-              className={`traco sombra-dura rounded-2xl p-2 ${coresDeTime[time]}`}
-            >
-              <div className="flex items-center justify-between px-1">
-                <span className="font-display text-creme text-sm uppercase tracking-wider">
-                  Time {time}
-                </span>
-                {me.team === time ? null : (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      acao(() => api.trocarTime(room.code, token, time))
-                    }
-                    className="font-display bg-creme text-tinta traco-fino rounded-lg px-2 py-0.5 text-xs uppercase"
-                  >
-                    Entrar
-                  </button>
-                )}
-              </div>
-              <ul className="mt-1 flex flex-wrap gap-1.5">
-                {players
-                  .filter((jogador) => jogador.team === time)
-                  .map((jogador) => (
-                    <li
-                      key={jogador.id}
-                      className="bg-creme traco-fino font-display rounded-lg px-2 py-1 text-sm uppercase"
+      {jaSorteado ? (
+        <section className="w-full max-w-sm">
+          <h2 className="font-display text-tinta mb-2 text-lg uppercase">
+            Os times
+          </h2>
+          <div className="grid grid-cols-2 items-stretch gap-2">
+            {(["vermelho", "azul"] as const).map((time) => {
+              const doTime = players.filter(
+                (jogador) => jogador.team === time,
+              );
+
+              return (
+                <div
+                  key={time}
+                  className={`traco sombra-dura flex flex-col gap-2 rounded-2xl p-2 ${coresDeTime[time]}`}
+                >
+                  <div className="text-center">
+                    <p className="font-display text-creme text-xs uppercase leading-none">
+                      Time {time}
+                    </p>
+                    <p className="font-display text-creme contorno-fino text-3xl leading-none">
+                      {doTime.length}
+                    </p>
+                  </div>
+                  <ul className="flex flex-1 flex-col gap-1.5">
+                    {doTime.length === 0 ? (
+                      <li className="border-creme/50 font-display text-creme/70 rounded-lg border-2 border-dashed px-2 py-1.5 text-center text-xs uppercase leading-none">
+                        vazio
+                      </li>
+                    ) : (
+                      doTime.map((jogador) => (
+                        <li
+                          key={jogador.id}
+                          className="bg-creme traco-fino font-display rounded-lg px-2 py-1.5 text-center text-sm uppercase leading-none"
+                        >
+                          {jogador.name}
+                          {jogador.is_host ? " ★" : ""}
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                  {me.team === time ? null : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        acao(() => api.trocarTime(room.code, token, time))
+                      }
+                      className="font-display bg-creme text-tinta traco-fino mt-auto rounded-lg px-2 py-1 text-xs uppercase"
                     >
-                      {jogador.name}
-                      {jogador.is_host ? " ★" : ""}
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </section>
+                      Passar pra cá
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : (
+        <section className="w-full max-w-sm">
+          <h2 className="font-display text-tinta mb-2 text-lg uppercase">
+            Na mesa ({players.length})
+          </h2>
+          <div className="bg-creme traco sombra-dura rounded-2xl p-3">
+            <ul className="flex flex-wrap justify-center gap-1.5">
+              {players.map((jogador) => (
+                <li
+                  key={jogador.id}
+                  className="bg-banana traco-fino font-display rounded-lg px-2 py-1 text-sm uppercase"
+                  style={{ animation: "sobe-suave 0.35s both" }}
+                >
+                  {jogador.name}
+                  {jogador.is_host ? " ★" : ""}
+                </li>
+              ))}
+            </ul>
+            <p className="font-display text-tinta mt-3 text-center text-xs uppercase opacity-70">
+              Ninguém tem time ainda. O sorteio decide.
+            </p>
+          </div>
+        </section>
+      )}
 
       <section className="w-full max-w-sm">
         <h2 className="font-display text-tinta mb-2 text-lg uppercase">
@@ -169,9 +249,14 @@ export function LobbyScreen({
           <>
             <Button
               cor="tinta"
-              onClick={() => acao(() => api.sortearTimes(room.code, token))}
+              disabled={sorteando || players.length < minPlayers}
+              onClick={sortear}
             >
-              Sortear times
+              {sorteando
+                ? "Sorteando..."
+                : jaSorteado
+                  ? "Sortear de novo"
+                  : "Sortear times"}
             </Button>
             <Button
               cor="fogo"
@@ -183,7 +268,9 @@ export function LobbyScreen({
           </>
         ) : (
           <p className="font-display bg-creme traco sombra-dura rounded-2xl px-4 py-3 text-center text-lg uppercase">
-            Esperando o dono da sala começar
+            {jaSorteado
+              ? "Esperando o dono da sala começar"
+              : "Esperando o sorteio dos times"}
           </p>
         )}
 
@@ -191,9 +278,9 @@ export function LobbyScreen({
           Como se joga
         </Button>
 
-        {!pronto ? (
+        {players.length < minPlayers ? (
           <p className="font-display text-tinta text-center text-xs uppercase opacity-80">
-            Precisa de {minPlayers} pessoas, com 2 em cada time
+            Precisa de {minPlayers} pessoas na mesa pra sortear
           </p>
         ) : null}
 
@@ -206,6 +293,13 @@ export function LobbyScreen({
           </p>
         ) : null}
       </div>
+
+      {mostrarSorteio ? (
+        <TeamDraw
+          players={players}
+          onFechar={() => setMostrarSorteio(false)}
+        />
+      ) : null}
     </main>
   );
 }

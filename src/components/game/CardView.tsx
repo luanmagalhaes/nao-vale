@@ -19,8 +19,8 @@ export function CardView({
   const selo = selos[card.heat];
 
   const animacao = saindo
-    ? `carta-voa-${saindo} 0.55s ease-in forwards`
-    : "carta-entra 0.45s cubic-bezier(0.2, 1.4, 0.5, 1) both";
+    ? `carta-voa-${saindo} 0.22s ease-in forwards`
+    : "carta-entra 0.18s cubic-bezier(0.2, 1.3, 0.5, 1) both";
 
   return (
     <div
