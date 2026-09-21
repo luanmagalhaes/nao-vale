@@ -8,142 +8,151 @@ import { Wordmark } from "@/components/ui/Wordmark";
 import { HowToPlay } from "@/components/game/HowToPlay";
 import { api } from "@/lib/api/client";
 import { copy } from "@/data/copy";
-import { tamanhoDoCodigo } from "@/lib/game/rules";
+import { codeLength } from "@/lib/game/rules";
 import {
-  guardarSessao,
-  inscrever,
-  lerTutorialVisto,
-  marcarTutorialVisto,
-  tutorialDoServidor,
+  saveSession,
+  subscribe,
+  readTutorialSeen,
+  markTutorialSeen,
+  tutorialOnServer,
 } from "@/lib/session";
 
 type Modo = "escolha" | "entrando";
 
 export function HomeScreen() {
   const router = useRouter();
-  const [modo, setModo] = useState<Modo>("escolha");
-  const [nome, setNome] = useState("");
+  const [mode, setModo] = useState<Modo>("escolha");
+  const [name, setNome] = useState("");
   const [codigo, setCodigo] = useState("");
-  const [erro, setErro] = useState("");
-  const [ocupado, setOcupado] = useState(false);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
   const [tutorialAberto, setTutorialAberto] = useState(false);
 
   const tutorialVisto = useSyncExternalStore(
-    inscrever,
-    lerTutorialVisto,
-    tutorialDoServidor,
+    subscribe,
+    readTutorialSeen,
+    tutorialOnServer,
   );
 
-  const nomeValido = nome.trim().length > 1;
+  const nomeValido = name.trim().length > 1;
   const mostrarTutorial = tutorialAberto || !tutorialVisto;
 
-  async function despachar(executar: () => Promise<{ code: string; token: string; playerId: string }>) {
+  async function dispatch(run: () => Promise<{ code: string; token: string; playerId: string }>) {
     if (!nomeValido) {
-      setErro(copy.erros.nomeVazio);
+      setError(copy.errors.emptyName);
       return;
     }
 
-    setOcupado(true);
+    setBusy(true);
 
     try {
-      setErro("");
-      const sessao = await executar();
-      guardarSessao(sessao);
-      router.push(`/sala/${sessao.code}`);
-    } catch (falha) {
-      setErro(falha instanceof Error ? falha.message : copy.erros.semRede);
+      setError("");
+      const sessao = await run();
+      saveSession(sessao);
+      router.push(`/room/${sessao.code}`);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : copy.errors.offline);
     } finally {
-      setOcupado(false);
+      setBusy(false);
     }
   }
 
-  function entrarNaSala() {
-    if (codigo.trim().length !== tamanhoDoCodigo) {
-      setErro(copy.erros.codigoCurto);
+  function joinRoom() {
+    if (codigo.trim().length !== codeLength) {
+      setError(copy.errors.shortCode);
       return;
     }
 
-    void despachar(() => api.entrar(codigo.trim(), nome.trim()));
+    void dispatch(() => api.joinRoom(codigo.trim(), name.trim()));
   }
 
   return (
-    <main className="bolinhas bg-banana flex min-h-dvh flex-col items-center px-6 pb-[calc(2rem+var(--safe-bottom))] pt-[calc(2.5rem+var(--safe-top))]">
+    <main className="dots bg-yellow flex min-h-dvh flex-col items-center px-6 pb-[calc(2rem+var(--safe-bottom))] pt-[calc(2.5rem+var(--safe-top))]">
       <SoundToggle />
 
-      <div style={{ animation: "sobe-suave 0.5s both" }}>
-        <Wordmark tamanho="medio" />
+      <div style={{ animation: "rise-in 0.5s both" }}>
+        <Wordmark size="md" />
       </div>
 
       <div
         className="mt-10 flex w-full max-w-sm flex-col gap-4"
-        style={{ animation: "sobe-suave 0.5s 0.12s both" }}
+        style={{ animation: "rise-in 0.5s 0.12s both" }}
       >
-        <label className="font-display text-tinta text-lg uppercase tracking-wide">
-          {copy.home.campoNome}
+        <label className="font-display text-ink text-lg uppercase tracking-wide">
+          {copy.home.nameField}
           <input
-            value={nome}
-            onChange={(evento) => setNome(evento.target.value)}
-            placeholder={copy.home.placeholderNome}
+            value={name}
+            onChange={(event) => setNome(event.target.value)}
+            placeholder={copy.home.namePlaceholder}
             maxLength={16}
-            className="bg-creme traco sombra-dura font-sans mt-2 w-full rounded-2xl px-4 py-3 text-xl font-bold outline-none placeholder:opacity-40"
+            className="bg-cream stroke-hard hard-shadow font-sans mt-2 w-full rounded-2xl px-4 py-3 text-xl font-bold outline-none placeholder:opacity-40"
           />
         </label>
 
-        {modo === "escolha" ? (
+        {mode === "escolha" ? (
           <div className="flex flex-col gap-3">
             <Button
               cor="fogo"
-              disabled={ocupado}
-              onClick={() => despachar(() => api.criarSala(nome.trim(), "suave"))}
+              disabled={busy}
+              onClick={() => dispatch(() => api.createRoom(name.trim(), "mild"))}
             >
-              {copy.home.criar}
+              {copy.home.create}
             </Button>
             <Button cor="ceu" onClick={() => setModo("entrando")}>
-              {copy.home.entrar}
+              {copy.home.join}
             </Button>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            <label className="font-display text-tinta text-lg uppercase tracking-wide">
-              {copy.home.campoCodigo}
+            <label className="font-display text-ink text-lg uppercase tracking-wide">
+              {copy.home.codeField}
               <input
                 value={codigo}
-                onChange={(evento) =>
+                onChange={(event) =>
                   setCodigo(
-                    evento.target.value
+                    event.target.value
                       .replace(/\D/g, "")
-                      .slice(0, tamanhoDoCodigo),
+                      .slice(0, codeLength),
                   )
                 }
-                placeholder={copy.home.placeholderCodigo}
+                placeholder={copy.home.codePlaceholder}
                 inputMode="numeric"
                 autoComplete="off"
-                className="bg-creme traco sombra-dura font-display mt-2 w-full rounded-2xl px-4 py-3 text-center text-5xl tracking-[0.3em] outline-none placeholder:opacity-30"
+                className="bg-cream stroke-hard hard-shadow font-display mt-2 w-full rounded-2xl px-4 py-3 text-center text-5xl tracking-[0.3em] outline-none placeholder:opacity-30"
               />
             </label>
-            <Button cor="ceu" disabled={ocupado} onClick={entrarNaSala}>
-              {copy.home.confirmarEntrada}
+            <Button cor="ceu" disabled={busy} onClick={joinRoom}>
+              {copy.home.confirmJoin}
             </Button>
             <Button cor="creme" onClick={() => setModo("escolha")}>
-              {copy.home.voltar}
+              {copy.home.back}
             </Button>
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={() => setTutorialAberto(true)}
-          className="font-display text-tinta text-center text-base uppercase underline decoration-2 underline-offset-4"
-        >
-          {copy.home.regras}
-        </button>
-
-        {erro ? (
-          <p
-            className="bg-fogo text-creme traco-fino font-display rounded-xl px-4 py-2 text-center text-lg uppercase"
-            style={{ animation: "tremor 0.4s both" }}
+        <div className="flex items-center justify-center gap-4">
+          <button
+            type="button"
+            onClick={() => setTutorialAberto(true)}
+            className="font-display text-ink text-base uppercase underline decoration-2 underline-offset-4"
           >
-            {erro}
+            {copy.home.rules}
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push("/history")}
+            className="font-display text-ink text-base uppercase underline decoration-2 underline-offset-4"
+          >
+            {copy.home.history}
+          </button>
+        </div>
+
+        {error ? (
+          <p
+            className="bg-fire text-cream stroke-thin font-display rounded-xl px-4 py-2 text-center text-lg uppercase"
+            style={{ animation: "shake 0.4s both" }}
+          >
+            {error}
           </p>
         ) : null}
       </div>
@@ -151,7 +160,7 @@ export function HomeScreen() {
       {mostrarTutorial ? (
         <HowToPlay
           onClose={() => {
-            marcarTutorialVisto();
+            markTutorialSeen();
             setTutorialAberto(false);
           }}
         />

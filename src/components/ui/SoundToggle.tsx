@@ -2,30 +2,30 @@
 
 import { useSyncExternalStore } from "react";
 import {
-  alternarMudo,
-  inscreverMudo,
-  lerMudo,
-  mudoDoServidor,
-  prepararSons,
-  tocar,
+  toggleMuted,
+  subscribeMuted,
+  readMuted,
+  mutedOnServer,
+  preloadSounds,
+  playSound,
 } from "@/lib/sound";
 
 export function SoundToggle() {
-  const mudo = useSyncExternalStore(inscreverMudo, lerMudo, mudoDoServidor);
+  const mudo = useSyncExternalStore(subscribeMuted, readMuted, mutedOnServer);
 
   return (
     <button
       type="button"
       aria-label={mudo ? "Ligar o som" : "Desligar o som"}
       onClick={() => {
-        alternarMudo();
+        toggleMuted();
 
         if (mudo) {
-          prepararSons();
-          tocar("tap");
+          preloadSounds();
+          playSound("tap");
         }
       }}
-      className="bg-creme traco sombra-dura fixed right-3 top-[calc(0.75rem+var(--safe-top))] z-50 flex h-11 w-11 items-center justify-center rounded-full"
+      className="bg-cream stroke-hard hard-shadow fixed right-3 top-[calc(0.75rem+var(--safe-top))] z-50 flex h-11 w-11 items-center justify-center rounded-full"
     >
       <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
         <path

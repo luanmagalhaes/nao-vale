@@ -1,56 +1,56 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, type EstadoDaSala } from "@/lib/api/client";
+import { api, type RoomState } from "@/lib/api/client";
 import { browserClient } from "@/lib/supabase/browser";
 
-const intervaloDeSeguranca = 3000;
+const fallbackIntervalMs = 3000;
 
 export function useRoom(code: string | null, token: string | null) {
-  const [estado, setEstado] = useState<EstadoDaSala | null>(null);
-  const [erro, setErro] = useState<string | null>(null);
+  const [state, setEstado] = useState<RoomState | null>(null);
+  const [error, setErro] = useState<string | null>(null);
   const roomIdRef = useRef<string | null>(null);
 
-  const atualizar = useCallback(async () => {
+  const refresh = useCallback(async () => {
     if (!code || !token) {
       return;
     }
 
     try {
-      const proximo = await api.estado(code, token);
+      const proximo = await api.state(code, token);
       roomIdRef.current = proximo.room.id;
       setEstado(proximo);
       setErro(null);
-    } catch (falha) {
+    } catch (failure) {
       setErro(
-        falha instanceof Error ? falha.message : "Deu ruim aqui. Tente de novo.",
+        failure instanceof Error ? failure.message : "Deu ruim aqui. Tente de novo.",
       );
     }
   }, [code, token]);
 
   useEffect(() => {
-    const imediato = setTimeout(() => void atualizar(), 0);
+    const firstLoad = setTimeout(() => void refresh(), 0);
 
-    const relogio = setInterval(() => {
-      void atualizar();
-    }, intervaloDeSeguranca);
+    const timer = setInterval(() => {
+      void refresh();
+    }, fallbackIntervalMs);
 
     return () => {
-      clearTimeout(imediato);
-      clearInterval(relogio);
+      clearTimeout(firstLoad);
+      clearInterval(timer);
     };
-  }, [atualizar]);
+  }, [refresh]);
 
   useEffect(() => {
-    const roomId = estado?.room.id;
+    const roomId = state?.room.id;
 
     if (!roomId) {
       return;
     }
 
-    const cliente = browserClient();
-    const canal = cliente
-      .channel(`sala-${roomId}`)
+    const client = browserClient();
+    const channel = client
+      .channel(`room-${roomId}`)
       .on(
         "postgres_changes",
         {
@@ -59,7 +59,7 @@ export function useRoom(code: string | null, token: string | null) {
           table: "nv_rooms",
           filter: `id=eq.${roomId}`,
         },
-        () => void atualizar(),
+        () => void refresh(),
       )
       .on(
         "postgres_changes",
@@ -69,7 +69,7 @@ export function useRoom(code: string | null, token: string | null) {
           table: "nv_players",
           filter: `room_id=eq.${roomId}`,
         },
-        () => void atualizar(),
+        () => void refresh(),
       )
       .on(
         "postgres_changes",
@@ -79,7 +79,7 @@ export function useRoom(code: string | null, token: string | null) {
           table: "nv_turns",
           filter: `room_id=eq.${roomId}`,
         },
-        () => void atualizar(),
+        () => void refresh(),
       )
       .on(
         "postgres_changes",
@@ -89,14 +89,14 @@ export function useRoom(code: string | null, token: string | null) {
           table: "nv_results",
           filter: `room_id=eq.${roomId}`,
         },
-        () => void atualizar(),
+        () => void refresh(),
       )
       .subscribe();
 
     return () => {
-      void cliente.removeChannel(canal);
+      void client.removeChannel(channel);
     };
-  }, [estado?.room.id, atualizar]);
+  }, [state?.room.id, refresh]);
 
-  return { estado, erro, carregando: estado === null && erro === null, atualizar };
+  return { state, error, loading: state === null && error === null, refresh };
 }

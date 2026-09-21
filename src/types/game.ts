@@ -1,12 +1,12 @@
-export type Heat = "suave" | "picante" | "extra";
+export type Heat = "mild" | "spicy" | "extra";
 
-export type DeckMode = "suave" | "apimentado" | "misto";
+export type DeckMode = "mild" | "hot" | "mixed";
 
-export type Team = "vermelho" | "azul";
+export type Team = "red" | "blue";
 
-export type Outcome = "acerto" | "pulo" | "queima";
+export type Outcome = "hit" | "skip" | "burn";
 
-export type RoomStatus = "lobby" | "jogando" | "fim";
+export type RoomStatus = "lobby" | "playing" | "done";
 
 export type TurnStatus = "ready" | "running" | "done";
 
@@ -63,6 +63,30 @@ export interface ResultRow {
 }
 
 export interface Score {
-  vermelho: number;
-  azul: number;
+  red: number;
+  blue: number;
+}
+
+export interface MatchPlayer {
+  name: string;
+  team: Team;
+}
+
+export interface MatchRow {
+  id: string;
+  room_code: string;
+  deck_mode: DeckMode;
+  score_red: number;
+  score_blue: number;
+  winner: Team | "tie" | null;
+  players: MatchPlayer[];
+  cards_played: number;
+  finished_at: string;
+}
+
+export interface RankingRow {
+  name: string;
+  wins: number;
+  matches: number;
+  cards: number;
 }

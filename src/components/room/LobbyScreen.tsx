@@ -3,171 +3,172 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { TeamDraw } from "@/components/room/TeamDraw";
-import { api, type EstadoDaSala } from "@/lib/api/client";
+import { api, type RoomState } from "@/lib/api/client";
 import { deckSizes } from "@/data/deck";
-import { minPlayers, podeComecar, semTime } from "@/lib/game/rules";
+import { copy } from "@/data/copy";
+import { minPlayers, canStart, withoutTeam } from "@/lib/game/rules";
 import type { DeckMode, Team } from "@/types/game";
 
-const baralhos: {
-  modo: DeckMode;
-  nome: string;
-  descricao: string;
+const decks: {
+  mode: DeckMode;
+  name: string;
+  description: string;
   total: number;
 }[] = [
   {
-    modo: "suave",
-    nome: "De boa",
-    descricao: "Sem picante. Serve pra jogar com a família toda.",
-    total: deckSizes.suave,
+    mode: "mild",
+    name: "De boa",
+    description: "Sem picante. Serve pra jogar com a família toda.",
+    total: deckSizes.mild,
   },
   {
-    modo: "apimentado",
-    nome: "Picante + extra",
-    descricao: "Só carta adulta. Não jogue com a sua avó.",
-    total: deckSizes.apimentado,
+    mode: "hot",
+    name: "Picante + extra",
+    description: "Só carta adulta. Não jogue com a sua avó.",
+    total: deckSizes.hot,
   },
   {
-    modo: "misto",
-    nome: "Misto",
-    descricao: "Tudo junto. A carta picante vem sem avisar.",
-    total: deckSizes.misto,
+    mode: "mixed",
+    name: "Misto",
+    description: "Tudo junto. A carta picante vem sem avisar.",
+    total: deckSizes.mixed,
   },
 ];
 
-const coresDeTime: Record<Team, string> = {
-  vermelho: "bg-time-vermelho",
-  azul: "bg-time-azul",
+const teamColors: Record<Team, string> = {
+  red: "bg-team-red",
+  blue: "bg-team-blue",
 };
 
 export function LobbyScreen({
-  estado,
+  state,
   token,
-  onTutorial,
+  onHelp,
 }: {
-  estado: EstadoDaSala;
+  state: RoomState;
   token: string;
-  onTutorial: () => void;
+  onHelp: () => void;
 }) {
-  const [copiado, setCopiado] = useState(false);
-  const [erro, setErro] = useState("");
-  const [sorteando, setSorteando] = useState(false);
-  const [mostrarSorteio, setMostrarSorteio] = useState(false);
-  const semTimeAntes = useRef<number | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
+  const [drawing, setDrawing] = useState(false);
+  const [showDraw, setShowDraw] = useState(false);
+  const previousWithoutTeam = useRef<number | null>(null);
 
-  const { room, players, me } = estado;
-  const pronto = podeComecar(players);
-  const aguardando = semTime(players);
-  const jaSorteado = aguardando.length === 0 && players.length > 0;
+  const { room, players, me } = state;
+  const ready = canStart(players);
+  const waiting = withoutTeam(players);
+  const alreadyDrawn = waiting.length === 0 && players.length > 0;
 
   useEffect(() => {
-    const antes = semTimeAntes.current;
-    semTimeAntes.current = aguardando.length;
+    const previous = previousWithoutTeam.current;
+    previousWithoutTeam.current = waiting.length;
 
-    if (antes === null || antes === 0 || aguardando.length > 0) {
+    if (previous === null || previous === 0 || waiting.length > 0) {
       return;
     }
 
-    const abrir = setTimeout(() => setMostrarSorteio(true), 0);
+    const open = setTimeout(() => setShowDraw(true), 0);
 
-    return () => clearTimeout(abrir);
-  }, [aguardando.length]);
+    return () => clearTimeout(open);
+  }, [waiting.length]);
 
-  async function acao(executar: () => Promise<unknown>) {
+  async function run(run: () => Promise<unknown>) {
     try {
-      setErro("");
-      await executar();
-    } catch (falha) {
-      setErro(
-        falha instanceof Error ? falha.message : "Deu ruim aqui. Tente de novo.",
+      setError("");
+      await run();
+    } catch (failure) {
+      setError(
+        failure instanceof Error ? failure.message : "Deu ruim aqui. Tente de novo.",
       );
     }
   }
 
-  async function sortear() {
-    setSorteando(true);
+  async function runDraw() {
+    setDrawing(true);
 
     try {
-      setErro("");
-      await api.sortearTimes(room.code, token);
-    } catch (falha) {
-      setErro(
-        falha instanceof Error ? falha.message : "Deu ruim aqui. Tente de novo.",
+      setError("");
+      await api.drawTeams(room.code, token);
+    } catch (failure) {
+      setError(
+        failure instanceof Error ? failure.message : "Deu ruim aqui. Tente de novo.",
       );
     } finally {
-      setSorteando(false);
+      setDrawing(false);
     }
   }
 
-  async function copiarCodigo() {
+  async function copyCode() {
     await navigator.clipboard.writeText(room.code);
-    setCopiado(true);
-    setTimeout(() => setCopiado(false), 1600);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
   }
 
   return (
-    <main className="bolinhas bg-banana flex min-h-dvh flex-col items-center gap-5 px-5 pb-[calc(2rem+var(--safe-bottom))] pt-[calc(1.5rem+var(--safe-top))]">
+    <main className="dots bg-yellow flex min-h-dvh flex-col items-center gap-5 px-5 pb-[calc(2rem+var(--safe-bottom))] pt-[calc(1.5rem+var(--safe-top))]">
       <button
         type="button"
-        onClick={copiarCodigo}
-        className="bg-tinta traco sombra-dura-g flex w-full max-w-sm flex-col items-center rounded-3xl py-4"
-        style={{ animation: "sobe-suave 0.4s both" }}
+        onClick={copyCode}
+        className="bg-ink stroke-hard hard-shadow-lg flex w-full max-w-sm flex-col items-center rounded-3xl py-4"
+        style={{ animation: "rise-in 0.4s both" }}
       >
-        <span className="font-display text-banana text-xs uppercase tracking-[0.3em]">
-          {copiado ? "Copiado!" : "Código da sala"}
+        <span className="font-display text-yellow text-xs uppercase tracking-[0.3em]">
+          {copied ? "Copiado!" : "Código da sala"}
         </span>
-        <span className="font-display text-creme text-6xl leading-none tracking-[0.2em]">
+        <span className="font-display text-cream text-6xl leading-none tracking-[0.2em]">
           {room.code}
         </span>
       </button>
 
-      {jaSorteado ? (
+      {alreadyDrawn ? (
         <section className="w-full max-w-sm">
-          <h2 className="font-display text-tinta mb-2 text-lg uppercase">
+          <h2 className="font-display text-ink mb-2 text-lg uppercase">
             Os times
           </h2>
           <div className="grid grid-cols-2 items-stretch gap-2">
-            {(["vermelho", "azul"] as const).map((time) => {
-              const doTime = players.filter(
-                (jogador) => jogador.team === time,
+            {(["red", "blue"] as const).map((team) => {
+              const teamPlayers = players.filter(
+                (player) => player.team === team,
               );
 
               return (
                 <div
-                  key={time}
-                  className={`traco sombra-dura flex flex-col gap-2 rounded-2xl p-2 ${coresDeTime[time]}`}
+                  key={team}
+                  className={`stroke-hard hard-shadow flex flex-col gap-2 rounded-2xl p-2 ${teamColors[team]}`}
                 >
                   <div className="text-center">
-                    <p className="font-display text-creme text-xs uppercase leading-none">
-                      Time {time}
+                    <p className="font-display text-cream text-xs uppercase leading-none">
+                      Time {copy.teams[team]}
                     </p>
-                    <p className="font-display text-creme contorno-fino text-3xl leading-none">
-                      {doTime.length}
+                    <p className="font-display text-cream outline-text-thin text-3xl leading-none">
+                      {teamPlayers.length}
                     </p>
                   </div>
                   <ul className="flex flex-1 flex-col gap-1.5">
-                    {doTime.length === 0 ? (
-                      <li className="border-creme/50 font-display text-creme/70 rounded-lg border-2 border-dashed px-2 py-1.5 text-center text-xs uppercase leading-none">
+                    {teamPlayers.length === 0 ? (
+                      <li className="border-cream/50 font-display text-cream/70 rounded-lg border-2 border-dashed px-2 py-1.5 text-center text-xs uppercase leading-none">
                         vazio
                       </li>
                     ) : (
-                      doTime.map((jogador) => (
+                      teamPlayers.map((player) => (
                         <li
-                          key={jogador.id}
-                          className="bg-creme traco-fino font-display rounded-lg px-2 py-1.5 text-center text-sm uppercase leading-none"
+                          key={player.id}
+                          className="bg-cream stroke-thin font-display rounded-lg px-2 py-1.5 text-center text-sm uppercase leading-none"
                         >
-                          {jogador.name}
-                          {jogador.is_host ? " ★" : ""}
+                          {player.name}
+                          {player.is_host ? " ★" : ""}
                         </li>
                       ))
                     )}
                   </ul>
-                  {me.team === time ? null : (
+                  {me.team === team ? null : (
                     <button
                       type="button"
                       onClick={() =>
-                        acao(() => api.trocarTime(room.code, token, time))
+                        run(() => api.changeTeam(room.code, token, team))
                       }
-                      className="font-display bg-creme text-tinta traco-fino mt-auto rounded-lg px-2 py-1 text-xs uppercase"
+                      className="font-display bg-cream text-ink stroke-thin mt-auto rounded-lg px-2 py-1 text-xs uppercase"
                     >
                       Passar pra cá
                     </button>
@@ -179,23 +180,23 @@ export function LobbyScreen({
         </section>
       ) : (
         <section className="w-full max-w-sm">
-          <h2 className="font-display text-tinta mb-2 text-lg uppercase">
+          <h2 className="font-display text-ink mb-2 text-lg uppercase">
             Na mesa ({players.length})
           </h2>
-          <div className="bg-creme traco sombra-dura rounded-2xl p-3">
+          <div className="bg-cream stroke-hard hard-shadow rounded-2xl p-3">
             <ul className="flex flex-wrap justify-center gap-1.5">
-              {players.map((jogador) => (
+              {players.map((player) => (
                 <li
-                  key={jogador.id}
-                  className="bg-banana traco-fino font-display rounded-lg px-2 py-1 text-sm uppercase"
-                  style={{ animation: "sobe-suave 0.35s both" }}
+                  key={player.id}
+                  className="bg-yellow stroke-thin font-display rounded-lg px-2 py-1 text-sm uppercase"
+                  style={{ animation: "rise-in 0.35s both" }}
                 >
-                  {jogador.name}
-                  {jogador.is_host ? " ★" : ""}
+                  {player.name}
+                  {player.is_host ? " ★" : ""}
                 </li>
               ))}
             </ul>
-            <p className="font-display text-tinta mt-3 text-center text-xs uppercase opacity-70">
+            <p className="font-display text-ink mt-3 text-center text-xs uppercase opacity-70">
               Ninguém tem time ainda. O sorteio decide.
             </p>
           </div>
@@ -203,43 +204,43 @@ export function LobbyScreen({
       )}
 
       <section className="w-full max-w-sm">
-        <h2 className="font-display text-tinta mb-2 text-lg uppercase">
+        <h2 className="font-display text-ink mb-2 text-lg uppercase">
           Baralho
         </h2>
         <div className="flex flex-col gap-2">
-          {baralhos.map((baralho) => {
-            const ativo = room.deck_mode === baralho.modo;
+          {decks.map((deck) => {
+            const active = room.deck_mode === deck.mode;
 
             return (
               <button
-                key={baralho.modo}
+                key={deck.mode}
                 type="button"
                 disabled={!me.is_host}
                 onClick={() =>
-                  acao(() => api.trocarBaralho(room.code, token, baralho.modo))
+                  run(() => api.changeDeck(room.code, token, deck.mode))
                 }
-                className={`traco sombra-dura rounded-2xl px-3 py-2 text-left disabled:opacity-60 ${
-                  ativo ? "bg-fogo text-creme" : "bg-creme text-tinta"
+                className={`stroke-hard hard-shadow rounded-2xl px-3 py-2 text-left disabled:opacity-60 ${
+                  active ? "bg-fire text-cream" : "bg-cream text-ink"
                 }`}
               >
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="font-display text-lg uppercase">
-                    {baralho.nome}
+                    {deck.name}
                   </span>
                   <span className="font-display text-xs uppercase opacity-80">
-                    {baralho.total} cartas
+                    {deck.total} cartas
                   </span>
                 </div>
                 <p className="text-xs font-bold opacity-90">
-                  {baralho.descricao}
+                  {deck.description}
                 </p>
               </button>
             );
           })}
         </div>
         {me.is_host ? null : (
-          <p className="font-display text-tinta mt-2 text-center text-xs uppercase opacity-70">
-            Só quem criou a sala escolhe o baralho
+          <p className="font-display text-ink mt-2 text-center text-xs uppercase opacity-70">
+            Só quem criou a room escolhe o deck
           </p>
         )}
       </section>
@@ -249,55 +250,55 @@ export function LobbyScreen({
           <>
             <Button
               cor="tinta"
-              disabled={sorteando || players.length < minPlayers}
-              onClick={sortear}
+              disabled={drawing || players.length < minPlayers}
+              onClick={runDraw}
             >
-              {sorteando
+              {drawing
                 ? "Sorteando..."
-                : jaSorteado
+                : alreadyDrawn
                   ? "Sortear de novo"
                   : "Sortear times"}
             </Button>
             <Button
               cor="fogo"
-              disabled={!pronto}
-              onClick={() => acao(() => api.comecarJogo(room.code, token))}
+              disabled={!ready}
+              onClick={() => run(() => api.startGame(room.code, token))}
             >
               Começar o jogo
             </Button>
           </>
         ) : (
-          <p className="font-display bg-creme traco sombra-dura rounded-2xl px-4 py-3 text-center text-lg uppercase">
-            {jaSorteado
+          <p className="font-display bg-cream stroke-hard hard-shadow rounded-2xl px-4 py-3 text-center text-lg uppercase">
+            {alreadyDrawn
               ? "Esperando o dono da sala começar"
               : "Esperando o sorteio dos times"}
           </p>
         )}
 
-        <Button cor="ceu" onClick={onTutorial}>
+        <Button cor="ceu" onClick={onHelp}>
           Como se joga
         </Button>
 
         {players.length < minPlayers ? (
-          <p className="font-display text-tinta text-center text-xs uppercase opacity-80">
-            Precisa de {minPlayers} pessoas na mesa pra sortear
+          <p className="font-display text-ink text-center text-xs uppercase opacity-80">
+            Precisa de {minPlayers} pessoas na mesa pra runDraw
           </p>
         ) : null}
 
-        {erro ? (
+        {error ? (
           <p
-            className="bg-fogo text-creme traco-fino font-display rounded-xl px-4 py-2 text-center text-base uppercase"
-            style={{ animation: "tremor 0.4s both" }}
+            className="bg-fire text-cream stroke-thin font-display rounded-xl px-4 py-2 text-center text-base uppercase"
+            style={{ animation: "shake 0.4s both" }}
           >
-            {erro}
+            {error}
           </p>
         ) : null}
       </div>
 
-      {mostrarSorteio ? (
+      {showDraw ? (
         <TeamDraw
           players={players}
-          onFechar={() => setMostrarSorteio(false)}
+          onClose={() => setShowDraw(false)}
         />
       ) : null}
     </main>

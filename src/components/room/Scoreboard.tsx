@@ -1,40 +1,40 @@
 import type { Score, Team } from "@/types/game";
 
-const rotulos: Record<Team, { nome: string; fundo: string }> = {
-  vermelho: { nome: "Vermelho", fundo: "bg-time-vermelho" },
-  azul: { nome: "Azul", fundo: "bg-time-azul" },
+const labels: Record<Team, { title: string; background: string }> = {
+  red: { title: "Vermelho", background: "bg-team-red" },
+  blue: { title: "Azul", background: "bg-team-blue" },
 };
 
 export function Scoreboard({
   score,
-  destaque,
-  pulsando,
+  highlight,
+  pulsing,
 }: {
   score: Score;
-  destaque?: Team | null;
-  pulsando?: Team | null;
+  highlight?: Team | null;
+  pulsing?: Team | null;
 }) {
   return (
     <div className="flex w-full max-w-sm items-stretch gap-2">
-      {(["vermelho", "azul"] as const).map((time) => (
+      {(["red", "blue"] as const).map((team) => (
         <div
-          key={time}
-          className={`traco sombra-dura flex flex-1 flex-col items-center rounded-2xl py-2 ${
-            rotulos[time].fundo
-          } ${destaque === time ? "scale-105" : "opacity-90"}`}
+          key={team}
+          className={`stroke-hard hard-shadow flex flex-1 flex-col items-center rounded-2xl py-2 ${
+            labels[team].background
+          } ${highlight === team ? "scale-105" : "opacity-90"}`}
         >
-          <span className="font-display text-creme text-xs uppercase tracking-wider">
-            {rotulos[time].nome}
+          <span className="font-display text-cream text-xs uppercase tracking-wider">
+            {labels[team].title}
           </span>
           <span
-            className="font-display text-creme contorno-fino text-4xl leading-none"
+            className="font-display text-cream outline-text-thin text-4xl leading-none"
             style={
-              pulsando === time
-                ? { animation: "placar-pulsa 0.5s ease-out" }
+              pulsing === team
+                ? { animation: "score-pop 0.5s ease-out" }
                 : undefined
             }
           >
-            {score[time]}
+            {score[team]}
           </span>
         </div>
       ))}

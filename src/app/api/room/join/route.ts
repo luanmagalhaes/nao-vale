@@ -1,5 +1,5 @@
-import { handle, lerCorpo } from "@/app/api/_shared";
-import { entrarNaSala } from "@/lib/game/service";
+import { handle, readBody } from "@/app/api/_shared";
+import { joinRoom } from "@/lib/game/service";
 
 interface Corpo {
   code?: string;
@@ -8,8 +8,8 @@ interface Corpo {
 
 export async function POST(request: Request) {
   return handle(async () => {
-    const corpo = await lerCorpo<Corpo>(request);
+    const body = await readBody<Corpo>(request);
 
-    return entrarNaSala(corpo.code ?? "", corpo.name ?? "");
+    return joinRoom(body.code ?? "", body.name ?? "");
   });
 }

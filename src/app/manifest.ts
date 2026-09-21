@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Não Vale",
     short_name: "Não Vale",
     description:
-      "Faça seu time adivinhar a palavra sem escorregar nas proibidas.",
+      "Faça seu team adivinhar a palavra sem escorregar nas proibidas.",
     start_url: "/",
     display: "standalone",
     orientation: "portrait",

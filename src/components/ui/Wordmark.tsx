@@ -1,51 +1,51 @@
 import { copy } from "@/data/copy";
 
-type Tamanho = "grande" | "medio" | "pequeno";
+type Size = "lg" | "md" | "sm";
 
-const escalas: Record<Tamanho, { linha: string; selo: string; tagline: string }> = {
-  grande: {
-    linha: "text-[19vw] leading-[0.82] sm:text-[7rem]",
-    selo: "text-base px-4 py-1.5",
+const scales: Record<Size, { row: string; badge: string; tagline: string }> = {
+  lg: {
+    row: "text-[19vw] leading-[0.82] sm:text-[7rem]",
+    badge: "text-base px-4 py-1.5",
     tagline: "text-sm",
   },
-  medio: {
-    linha: "text-[13vw] leading-[0.82] sm:text-[4.5rem]",
-    selo: "text-sm px-3 py-1",
+  md: {
+    row: "text-[13vw] leading-[0.82] sm:text-[4.5rem]",
+    badge: "text-sm px-3 py-1",
     tagline: "text-xs",
   },
-  pequeno: {
-    linha: "text-[8vw] leading-[0.85] sm:text-3xl",
-    selo: "text-[10px] px-2 py-0.5",
+  sm: {
+    row: "text-[8vw] leading-[0.85] sm:text-3xl",
+    badge: "text-[10px] px-2 py-0.5",
     tagline: "text-[10px]",
   },
 };
 
 export function Wordmark({
-  tamanho = "grande",
-  comTagline = true,
+  size = "lg",
+  withTagline = true,
 }: {
-  tamanho?: Tamanho;
-  comTagline?: boolean;
+  size?: Size;
+  withTagline?: boolean;
 }) {
-  const escala = escalas[tamanho];
+  const scale = scales[size];
 
   return (
     <div className="flex flex-col items-center select-none">
       <span
-        className={`font-display text-creme contorno ${escala.linha} -rotate-3`}
+        className={`font-display text-cream outline-text ${scale.row} -rotate-3`}
       >
-        {copy.marca.linha1}
+        {copy.brand.firstLine}
       </span>
       <span
-        className={`font-display text-fogo contorno ${escala.linha} rotate-2 -mt-[0.12em]`}
+        className={`font-display text-fire outline-text ${scale.row} rotate-2 -mt-[0.12em]`}
       >
-        {copy.marca.linha2}
+        {copy.brand.secondLine}
       </span>
-      {comTagline ? (
+      {withTagline ? (
         <span
-          className={`font-display bg-tinta text-banana traco-fino sombra-dura mt-3 -rotate-1 rounded-xl uppercase tracking-wide ${escala.selo}`}
+          className={`font-display bg-ink text-yellow stroke-thin hard-shadow mt-3 -rotate-1 rounded-xl uppercase tracking-wide ${scale.badge}`}
         >
-          {copy.marca.tagline}
+          {copy.brand.tagline}
         </span>
       ) : null}
     </div>

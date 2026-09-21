@@ -8,7 +8,7 @@ export class ServiceError extends Error {
   }
 }
 
-export const mensagens = {
+export const messages = {
   400: "Faltou alguma informação no pedido.",
   401: "Você não está nessa sala.",
   403: "Essa jogada não é sua.",
@@ -17,10 +17,10 @@ export const mensagens = {
   500: "Deu ruim aqui do nosso lado. Tente de novo.",
 } as const;
 
-export function mensagemPara(status: number): string {
-  if (status in mensagens) {
-    return mensagens[status as keyof typeof mensagens];
+export function messageFor(status: number): string {
+  if (status in messages) {
+    return messages[status as keyof typeof messages];
   }
 
-  return mensagens[500];
+  return messages[500];
 }

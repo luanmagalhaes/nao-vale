@@ -11,11 +11,11 @@ import { SoundToggle } from "@/components/ui/SoundToggle";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { useRoom } from "@/hooks/useRoom";
 import {
-  guardarSessao,
-  inscrever,
-  lerSessao,
-  limparSessao,
-  sessaoDoServidor,
+  saveSession,
+  subscribe,
+  readSession,
+  clearSession,
+  sessionOnServer,
 } from "@/lib/session";
 
 export function RoomApp({ code }: { code: string }) {
@@ -23,7 +23,7 @@ export function RoomApp({ code }: { code: string }) {
   const parametros = useSearchParams();
   const convite = parametros.get("t");
   const [tutorial, setTutorial] = useState(false);
-  const sessao = useSyncExternalStore(inscrever, lerSessao, sessaoDoServidor);
+  const sessao = useSyncExternalStore(subscribe, readSession, sessionOnServer);
   const token = sessao?.code === code ? sessao.token : convite;
 
   useEffect(() => {
@@ -32,20 +32,20 @@ export function RoomApp({ code }: { code: string }) {
     }
 
     const aplicar = setTimeout(() => {
-      guardarSessao({ code, token: convite, playerId: "" }, true);
-      router.replace(`/sala/${code}`);
+      saveSession({ code, token: convite, playerId: "" }, true);
+      router.replace(`/room/${code}`);
     }, 0);
 
     return () => clearTimeout(aplicar);
   }, [convite, code, router]);
-  const { estado, erro, carregando, atualizar } = useRoom(code, token);
+  const { state, error, loading, refresh } = useRoom(code, token);
 
   if (!token) {
     return (
-      <main className="bolinhas bg-banana flex min-h-dvh flex-col items-center justify-center gap-6 px-6">
-        <Wordmark tamanho="medio" comTagline={false} />
-        <p className="font-display text-tinta text-center text-xl uppercase">
-          Você ainda não entrou nessa sala
+      <main className="dots bg-yellow flex min-h-dvh flex-col items-center justify-center gap-6 px-6">
+        <Wordmark size="md" withTagline={false} />
+        <p className="font-display text-ink text-center text-xl uppercase">
+          Você ainda não entrou nessa room
         </p>
         <Button cor="fogo" onClick={() => router.push("/")}>
           Ir para o começo
@@ -54,26 +54,26 @@ export function RoomApp({ code }: { code: string }) {
     );
   }
 
-  if (carregando && !estado) {
+  if (loading && !state) {
     return (
-      <main className="bolinhas bg-banana flex min-h-dvh items-center justify-center">
-        <div style={{ animation: "flutua 1.6s ease-in-out infinite" }}>
-          <Wordmark tamanho="medio" comTagline={false} />
+      <main className="dots bg-yellow flex min-h-dvh items-center justify-center">
+        <div style={{ animation: "float-soft 1.6s ease-in-out infinite" }}>
+          <Wordmark size="md" withTagline={false} />
         </div>
       </main>
     );
   }
 
-  if (!estado) {
+  if (!state) {
     return (
-      <main className="bolinhas bg-banana flex min-h-dvh flex-col items-center justify-center gap-5 px-6">
-        <p className="font-display bg-fogo text-creme traco sombra-dura rounded-2xl px-4 py-3 text-center text-lg uppercase">
-          {erro ?? "Não achei essa sala"}
+      <main className="dots bg-yellow flex min-h-dvh flex-col items-center justify-center gap-5 px-6">
+        <p className="font-display bg-fire text-cream stroke-hard hard-shadow rounded-2xl px-4 py-3 text-center text-lg uppercase">
+          {error ?? "Não achei essa sala"}
         </p>
         <Button
           cor="creme"
           onClick={() => {
-            limparSessao();
+            clearSession();
             router.push("/");
           }}
         >
@@ -87,20 +87,20 @@ export function RoomApp({ code }: { code: string }) {
     <>
       <SoundToggle />
 
-      {estado.room.status === "lobby" ? (
+      {state.room.status === "lobby" ? (
         <LobbyScreen
-          estado={estado}
+          state={state}
           token={token}
-          onTutorial={() => setTutorial(true)}
+          onHelp={() => setTutorial(true)}
         />
       ) : null}
 
-      {estado.room.status === "jogando" ? (
-        <TurnScreen estado={estado} token={token} onAtualizar={atualizar} />
+      {state.room.status === "playing" ? (
+        <TurnScreen state={state} token={token} onRefresh={refresh} />
       ) : null}
 
-      {estado.room.status === "fim" ? (
-        <VictoryScreen estado={estado} token={token} />
+      {state.room.status === "done" ? (
+        <VictoryScreen state={state} token={token} />
       ) : null}
 
       {tutorial ? <HowToPlay onClose={() => setTutorial(false)} /> : null}

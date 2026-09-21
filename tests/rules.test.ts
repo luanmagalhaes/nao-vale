@@ -1,23 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
-  distribuirTimes,
-  jogoAcabou,
-  placar,
-  podeComecar,
-  proximoTurno,
+  assignTeams,
+  isGameOver,
+  scoreFrom,
+  canStart,
+  nextTurn,
   scoringTeam,
-  semTime,
-  timeAdversario,
-  vencedor,
+  withoutTeam,
+  rivalOf,
+  winnerOf,
 } from "@/lib/game/rules";
 import { deckFor, deckSizes } from "@/data/deck";
 import type { PlayerRow, ResultRow } from "@/types/game";
 
-function jogador(parcial: Partial<PlayerRow> & { id: string }): PlayerRow {
+function player(parcial: Partial<PlayerRow> & { id: string }): PlayerRow {
   return {
-    room_id: "sala",
+    room_id: "room",
     name: parcial.id,
-    team: "vermelho",
+    team: "red",
     is_host: false,
     has_spoken: false,
     judged_count: 0,
@@ -26,14 +26,14 @@ function jogador(parcial: Partial<PlayerRow> & { id: string }): PlayerRow {
   };
 }
 
-function resultado(parcial: Partial<ResultRow>): ResultRow {
+function outcomeCall(parcial: Partial<ResultRow>): ResultRow {
   return {
     id: crypto.randomUUID(),
-    room_id: "sala",
-    turn_id: "turno",
+    room_id: "room",
+    turn_id: "turn",
     card_id: "s001",
-    outcome: "acerto",
-    scoring_team: "vermelho",
+    outcome: "hit",
+    scoring_team: "red",
     undone: false,
     created_at: new Date().toISOString(),
     ...parcial,
@@ -41,165 +41,165 @@ function resultado(parcial: Partial<ResultRow>): ResultRow {
 }
 
 describe("pontuação", () => {
-  it("dá o ponto ao time do falante quando acerta", () => {
-    expect(scoringTeam("acerto", "vermelho")).toBe("vermelho");
+  it("dá o ponto ao team do speaker quando acerta", () => {
+    expect(scoringTeam("hit", "red")).toBe("red");
   });
 
-  it("dá o ponto ao adversário quando o juiz queima a carta", () => {
-    expect(scoringTeam("queima", "vermelho")).toBe("azul");
+  it("dá o ponto ao adversário quando o judge queima a card", () => {
+    expect(scoringTeam("burn", "red")).toBe("blue");
   });
 
-  it("não dá ponto a ninguém quando o falante pula", () => {
-    expect(scoringTeam("pulo", "vermelho")).toBeNull();
+  it("não dá ponto a ninguém quando o speaker pula", () => {
+    expect(scoringTeam("skip", "red")).toBeNull();
   });
 
-  it("ignora jogada desfeita no placar", () => {
-    const placarFinal = placar([
-      resultado({ scoring_team: "vermelho" }),
-      resultado({ scoring_team: "vermelho", undone: true }),
-      resultado({ scoring_team: "azul" }),
+  it("ignora jogada desfeita no scoreFrom", () => {
+    const placarFinal = scoreFrom([
+      outcomeCall({ scoring_team: "red" }),
+      outcomeCall({ scoring_team: "red", undone: true }),
+      outcomeCall({ scoring_team: "blue" }),
     ]);
 
-    expect(placarFinal).toEqual({ vermelho: 1, azul: 1 });
+    expect(placarFinal).toEqual({ red: 1, blue: 1 });
   });
 
-  it("aponta empate quando os dois times têm o mesmo total", () => {
-    expect(vencedor({ vermelho: 3, azul: 3 })).toBe("empate");
+  it("aponta empate quando os dois teamList têm o mesmo total", () => {
+    expect(winnerOf({ red: 3, blue: 3 })).toBe("tie");
   });
 });
 
 describe("ordem dos turnos", () => {
   const mesa = [
-    jogador({ id: "a", team: "vermelho", seat: 0 }),
-    jogador({ id: "b", team: "azul", seat: 1 }),
-    jogador({ id: "c", team: "vermelho", seat: 2 }),
-    jogador({ id: "d", team: "azul", seat: 3 }),
+    player({ id: "a", team: "red", seat: 0 }),
+    player({ id: "b", team: "blue", seat: 1 }),
+    player({ id: "c", team: "red", seat: 2 }),
+    player({ id: "d", team: "blue", seat: 3 }),
   ];
 
-  it("começa pelo time vermelho", () => {
-    expect(proximoTurno(mesa, null)?.team).toBe("vermelho");
+  it("começa pelo team vermelho", () => {
+    expect(nextTurn(mesa, null)?.team).toBe("red");
   });
 
-  it("alterna o time a cada turno", () => {
-    expect(proximoTurno(mesa, "vermelho")?.team).toBe("azul");
+  it("alterna o team a cada turn", () => {
+    expect(nextTurn(mesa, "red")?.team).toBe("blue");
   });
 
-  it("escolhe como juiz quem menos julgou no time adversário", () => {
+  it("escolhe como judge quem menos julgou no team adversário", () => {
     const comHistorico = [
-      jogador({ id: "a", team: "vermelho", seat: 0 }),
-      jogador({ id: "b", team: "azul", seat: 1, judged_count: 2 }),
-      jogador({ id: "c", team: "vermelho", seat: 2 }),
-      jogador({ id: "d", team: "azul", seat: 3, judged_count: 0 }),
+      player({ id: "a", team: "red", seat: 0 }),
+      player({ id: "b", team: "blue", seat: 1, judged_count: 2 }),
+      player({ id: "c", team: "red", seat: 2 }),
+      player({ id: "d", team: "blue", seat: 3, judged_count: 0 }),
     ];
 
-    expect(proximoTurno(comHistorico, null)?.judgeId).toBe("d");
+    expect(nextTurn(comHistorico, null)?.judgeId).toBe("d");
   });
 
-  it("volta ao time que ainda tem gente quando o outro já falou", () => {
+  it("volta ao team que ainda tem people quando o outro já falou", () => {
     const quaseFim = [
-      jogador({ id: "a", team: "vermelho", seat: 0, has_spoken: true }),
-      jogador({ id: "b", team: "azul", seat: 1, has_spoken: true }),
-      jogador({ id: "c", team: "vermelho", seat: 2 }),
-      jogador({ id: "d", team: "azul", seat: 3, has_spoken: true }),
+      player({ id: "a", team: "red", seat: 0, has_spoken: true }),
+      player({ id: "b", team: "blue", seat: 1, has_spoken: true }),
+      player({ id: "c", team: "red", seat: 2 }),
+      player({ id: "d", team: "blue", seat: 3, has_spoken: true }),
     ];
 
-    expect(proximoTurno(quaseFim, "vermelho")?.team).toBe("vermelho");
+    expect(nextTurn(quaseFim, "red")?.team).toBe("red");
   });
 
   it("encerra quando todo mundo já falou uma vez", () => {
-    const todosFalaram = mesa.map((pessoa) => ({ ...pessoa, has_spoken: true }));
+    const todosFalaram = mesa.map((person) => ({ ...person, has_spoken: true }));
 
-    expect(proximoTurno(todosFalaram, "azul")).toBeNull();
-    expect(jogoAcabou(todosFalaram)).toBe(true);
+    expect(nextTurn(todosFalaram, "blue")).toBeNull();
+    expect(isGameOver(todosFalaram)).toBe(true);
   });
 });
 
-describe("abertura da sala", () => {
+describe("abertura da room", () => {
   it("exige quatro pessoas com dois de cada lado", () => {
     const trio = [
-      jogador({ id: "a", team: "vermelho", seat: 0 }),
-      jogador({ id: "b", team: "azul", seat: 1 }),
-      jogador({ id: "c", team: "vermelho", seat: 2 }),
+      player({ id: "a", team: "red", seat: 0 }),
+      player({ id: "b", team: "blue", seat: 1 }),
+      player({ id: "c", team: "red", seat: 2 }),
     ];
 
-    expect(podeComecar(trio)).toBe(false);
+    expect(canStart(trio)).toBe(false);
   });
 
-  it("não deixa começar com gente sem time", () => {
+  it("não deixa começar com people sem team", () => {
     const mesa = [
-      jogador({ id: "a", team: "vermelho", seat: 0 }),
-      jogador({ id: "b", team: "azul", seat: 1 }),
-      jogador({ id: "c", team: "vermelho", seat: 2 }),
-      jogador({ id: "d", team: "azul", seat: 3 }),
-      jogador({ id: "e", team: null, seat: 4 }),
+      player({ id: "a", team: "red", seat: 0 }),
+      player({ id: "b", team: "blue", seat: 1 }),
+      player({ id: "c", team: "red", seat: 2 }),
+      player({ id: "d", team: "blue", seat: 3 }),
+      player({ id: "e", team: null, seat: 4 }),
     ];
 
-    expect(semTime(mesa)).toHaveLength(1);
-    expect(podeComecar(mesa)).toBe(false);
+    expect(withoutTeam(mesa)).toHaveLength(1);
+    expect(canStart(mesa)).toBe(false);
   });
 });
 
-describe("sorteio de times", () => {
-  const mesa = Array.from({ length: 7 }, (_, indice) =>
-    jogador({ id: `p${indice}`, team: null, seat: indice }),
+describe("sorteio de teamList", () => {
+  const mesa = Array.from({ length: 7 }, (_, index) =>
+    player({ id: `p${index}`, team: null, seat: index }),
   );
 
-  it("dá time para todo mundo", () => {
-    const mapa = distribuirTimes(mesa);
+  it("dá team para todo mundo", () => {
+    const map = assignTeams(mesa);
 
-    expect(mapa.size).toBe(mesa.length);
-    expect([...mapa.values()].every((time) => time !== null)).toBe(true);
+    expect(map.size).toBe(mesa.length);
+    expect([...map.values()].every((team) => team !== null)).toBe(true);
   });
 
-  it("deixa no máximo uma pessoa de diferença com número ímpar", () => {
-    const mapa = distribuirTimes(mesa);
-    const valores = [...mapa.values()];
-    const vermelho = valores.filter((time) => time === "vermelho").length;
-    const azul = valores.filter((time) => time === "azul").length;
+  it("deixa no máximo uma person de diferença com número ímpar", () => {
+    const map = assignTeams(mesa);
+    const valores = [...map.values()];
+    const vermelho = valores.filter((team) => team === "red").length;
+    const azul = valores.filter((team) => team === "blue").length;
 
     expect(Math.abs(vermelho - azul)).toBe(1);
     expect(vermelho + azul).toBe(7);
   });
 
-  it("não manda as mesmas pessoas para o mesmo time toda vez", () => {
+  it("não manda as mesmas pessoas para o mesmo team toda vez", () => {
     const rodadas = Array.from({ length: 24 }, () => {
-      const mapa = distribuirTimes(mesa);
+      const map = assignTeams(mesa);
 
-      return mesa.map((pessoa) => mapa.get(pessoa.id)).join(",");
+      return mesa.map((person) => map.get(person.id)).join(",");
     });
 
     expect(new Set(rodadas).size).toBeGreaterThan(1);
   });
 });
 
-describe("baralho", () => {
-  it("separa o modo suave do apimentado", () => {
-    expect(deckFor("suave").every((carta) => carta.heat === "suave")).toBe(true);
-    expect(deckFor("apimentado").some((carta) => carta.heat === "extra")).toBe(
+describe("deck", () => {
+  it("separa o mode suave do apimentado", () => {
+    expect(deckFor("mild").every((card) => card.heat === "mild")).toBe(true);
+    expect(deckFor("hot").some((card) => card.heat === "extra")).toBe(
       true,
     );
   });
 
-  it("junta tudo no modo misto", () => {
-    expect(deckFor("misto").length).toBe(deckSizes.misto);
+  it("junta tudo no mode misto", () => {
+    expect(deckFor("mixed").length).toBe(deckSizes.mixed);
   });
 
-  it("dá cinco palavras proibidas em toda carta", () => {
+  it("dá cinco palavras proibidas em toda card", () => {
     expect(
-      deckFor("misto").every((carta) => carta.forbidden.length === 5),
+      deckFor("mixed").every((card) => card.forbidden.length === 5),
     ).toBe(true);
   });
 
-  it("não repete id entre as cartas", () => {
-    const ids = deckFor("misto").map((carta) => carta.id);
+  it("não repete id entre as cardList", () => {
+    const ids = deckFor("mixed").map((card) => card.id);
 
     expect(new Set(ids).size).toBe(ids.length);
   });
 });
 
-describe("times", () => {
+describe("teamList", () => {
   it("sabe quem é o adversário", () => {
-    expect(timeAdversario("vermelho")).toBe("azul");
-    expect(timeAdversario("azul")).toBe("vermelho");
+    expect(rivalOf("red")).toBe("blue");
+    expect(rivalOf("blue")).toBe("red");
   });
 });

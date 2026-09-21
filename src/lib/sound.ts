@@ -1,6 +1,6 @@
 "use client";
 
-export type Som =
+export type SoundName =
   | "tap"
   | "card"
   | "right"
@@ -11,7 +11,7 @@ export type Som =
   | "draw"
   | "win";
 
-const nomes: Som[] = [
+const names: SoundName[] = [
   "tap",
   "card",
   "right",
@@ -23,7 +23,7 @@ const nomes: Som[] = [
   "win",
 ];
 
-const volumes: Record<Som, number> = {
+const volumes: Record<SoundName, number> = {
   tap: 0.35,
   card: 0.5,
   right: 0.6,
@@ -35,72 +35,72 @@ const volumes: Record<Som, number> = {
   win: 0.7,
 };
 
-const chaveMudo = "nao-vale:mudo";
+const mutedKey = "nao-vale:mudo";
 
-const ouvintes = new Set<() => void>();
-const elementos = new Map<Som, HTMLAudioElement>();
+const listeners = new Set<() => void>();
+const elementos = new Map<SoundName, HTMLAudioElement>();
 
-function avisar() {
-  ouvintes.forEach((ouvinte) => ouvinte());
+function notify() {
+  listeners.forEach((listener) => listener());
 }
 
-export function inscreverMudo(ouvinte: () => void) {
-  ouvintes.add(ouvinte);
+export function subscribeMuted(listener: () => void) {
+  listeners.add(listener);
 
   return () => {
-    ouvintes.delete(ouvinte);
+    listeners.delete(listener);
   };
 }
 
-export function lerMudo(): boolean {
-  return window.localStorage.getItem(chaveMudo) === "1";
+export function readMuted(): boolean {
+  return window.localStorage.getItem(mutedKey) === "1";
 }
 
-export function mudoDoServidor(): boolean {
+export function mutedOnServer(): boolean {
   return false;
 }
 
-export function alternarMudo() {
-  const proximo = !lerMudo();
+export function toggleMuted() {
+  const proximo = !readMuted();
 
-  window.localStorage.setItem(chaveMudo, proximo ? "1" : "0");
-  avisar();
+  window.localStorage.setItem(mutedKey, proximo ? "1" : "0");
+  notify();
 }
 
-function elementoDe(nome: Som): HTMLAudioElement | null {
+function elementFor(name: SoundName): HTMLAudioElement | null {
   if (typeof window === "undefined") {
     return null;
   }
 
-  const existente = elementos.get(nome);
+  const existente = elementos.get(name);
 
   if (existente) {
     return existente;
   }
 
-  const audio = new Audio(`/sounds/${nome}.wav`);
+  const audio = new Audio(`/sounds/${name}.wav`);
 
   audio.preload = "auto";
-  audio.volume = volumes[nome];
-  elementos.set(nome, audio);
+  audio.volume = volumes[name];
+  elementos.set(name, audio);
 
   return audio;
 }
 
-export function prepararSons() {
-  nomes.forEach((nome) => {
-    const audio = elementoDe(nome);
+export function preloadSounds() {
+  names.forEach((name) => {
+    const audio = elementFor(name);
 
     audio?.load();
   });
 }
 
-export function tocar(nome: Som) {
-  if (typeof window === "undefined" || lerMudo()) {
+export function playSound(name: SoundName) {
+  if (typeof window === "undefined" || readMuted()) {
     return;
   }
 
-  const audio = elementoDe(nome);
+  const audio = elementFor(name);
 
   if (!audio) {
     return;

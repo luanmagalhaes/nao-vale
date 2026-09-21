@@ -1,15 +1,15 @@
 export function ThumbArt({
-  direcao,
+  direction,
   className = "",
 }: {
-  direcao: "cima" | "baixo";
+  direction: "up" | "down";
   className?: string;
 }) {
   return (
     <svg
       viewBox="0 0 64 64"
       className={className}
-      style={direcao === "baixo" ? { transform: "rotate(180deg)" } : undefined}
+      style={direction === "down" ? { transform: "rotate(180deg)" } : undefined}
       aria-hidden="true"
     >
       <g

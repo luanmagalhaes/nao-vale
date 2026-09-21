@@ -2,18 +2,18 @@
 
 import { useEffect, useState } from "react";
 
-export function useNow(ativo: boolean) {
-  const [agora, setAgora] = useState(() => Date.now());
+export function useNow(active: boolean) {
+  const [now, setAgora] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!ativo) {
+    if (!active) {
       return;
     }
 
-    const relogio = setInterval(() => setAgora(Date.now()), 250);
+    const timer = setInterval(() => setAgora(Date.now()), 250);
 
-    return () => clearInterval(relogio);
-  }, [ativo]);
+    return () => clearInterval(timer);
+  }, [active]);
 
-  return agora;
+  return now;
 }

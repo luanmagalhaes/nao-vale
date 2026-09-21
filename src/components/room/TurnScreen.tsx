@@ -4,218 +4,214 @@ import { useEffect, useRef, useState } from "react";
 import { CardView } from "@/components/game/CardView";
 import { Scoreboard } from "@/components/room/Scoreboard";
 import { Button } from "@/components/ui/Button";
-import { api, type EstadoDaSala } from "@/lib/api/client";
+import { api, type RoomState } from "@/lib/api/client";
 import { useNow } from "@/hooks/useNow";
-import { timeAdversario } from "@/lib/game/rules";
-import { tocar } from "@/lib/sound";
+import { rivalOf } from "@/lib/game/rules";
+import { playSound } from "@/lib/sound";
 import type { Card, Outcome, Team } from "@/types/game";
 
-function nomeDe(estado: EstadoDaSala, id: string | null | undefined) {
-  return estado.players.find((jogador) => jogador.id === id)?.name ?? "alguém";
+const genericError = "Deu ruim aqui. Tente de novo.";
+
+function nameOf(state: RoomState, id: string | null | undefined) {
+  return state.players.find((player) => player.id === id)?.name ?? "alguém";
 }
 
 export function TurnScreen({
-  estado,
+  state,
   token,
-  onAtualizar,
+  onRefresh,
 }: {
-  estado: EstadoDaSala;
+  state: RoomState;
   token: string;
-  onAtualizar: () => void;
+  onRefresh: () => void;
 }) {
-  const [saindo, setSaindo] = useState<Team | null>(null);
-  const [cartaLocal, setCartaLocal] = useState<{
+  const [leaving, setLeaving] = useState<Team | null>(null);
+  const [localCard, setLocalCard] = useState<{
     card: Card;
     seq: number;
   } | null>(null);
-  const [carimbo, setCarimbo] = useState(false);
-  const [erro, setErro] = useState("");
-  const [ocupado, setOcupado] = useState(false);
-  const ultimoResultado = useRef<string | null>(null);
-  const encerrando = useRef(false);
+  const [showStamp, setShowStamp] = useState(false);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const lastOutcomeId = useRef<string | null>(null);
+  const ending = useRef(false);
 
-  const { turn, room, me, card, score } = estado;
-  const rodando = turn?.status === "running";
-  const agora = useNow(Boolean(rodando));
+  const { turn, room, me, card, score } = state;
+  const running = turn?.status === "running";
+  const now = useNow(Boolean(running));
 
-  const souFalante = turn?.speaker_id === me.id;
-  const souJuiz = turn?.judge_id === me.id;
-  const timeDoTurno = (turn?.team ?? "vermelho") as Team;
+  const isSpeaker = turn?.speaker_id === me.id;
+  const isJudge = turn?.judge_id === me.id;
+  const turnTeam = (turn?.team ?? "red") as Team;
 
-  const localNaFrente =
-    cartaLocal !== null && turn !== null && cartaLocal.seq >= turn.card_seq;
-  const cartaEmJogo = localNaFrente && cartaLocal ? cartaLocal.card : card;
-  const seqEmJogo =
-    localNaFrente && cartaLocal ? cartaLocal.seq : (turn?.card_seq ?? 0);
+  const localAhead =
+    localCard !== null && turn !== null && localCard.seq >= turn.card_seq;
+  const activeCard = localAhead && localCard ? localCard.card : card;
+  const activeSeq =
+    localAhead && localCard ? localCard.seq : (turn?.card_seq ?? 0);
 
-  const fim = turn?.ends_at ? new Date(turn.ends_at).getTime() : 0;
-  const restante = rodando ? Math.max(0, Math.ceil((fim - agora) / 1000)) : room.turn_seconds;
-  const acabou = rodando && restante <= 0;
+  const endsAt = turn?.ends_at ? new Date(turn.ends_at).getTime() : 0;
+  const remaining = running
+    ? Math.max(0, Math.ceil((endsAt - now) / 1000))
+    : room.turn_seconds;
+  const timeUp = running && remaining <= 0;
 
   useEffect(() => {
-    const ultimo = estado.results.at(-1);
+    const last = state.results.at(-1);
 
-    if (!ultimo || ultimo.id === ultimoResultado.current) {
+    if (!last || last.id === lastOutcomeId.current) {
       return;
     }
 
-    const primeiraLeitura = ultimoResultado.current === null;
-    ultimoResultado.current = ultimo.id;
+    const firstRead = lastOutcomeId.current === null;
+    lastOutcomeId.current = last.id;
 
-    if (primeiraLeitura || ultimo.undone) {
+    if (firstRead || last.undone) {
       return;
     }
 
-    const souAutor =
-      ultimo.outcome === "queima"
+    const isAuthor =
+      last.outcome === "burn"
         ? turn?.judge_id === me.id
         : turn?.speaker_id === me.id;
 
-    if (!souAutor) {
-      tocar(
-        ultimo.outcome === "acerto"
+    if (!isAuthor) {
+      playSound(
+        last.outcome === "hit"
           ? "right"
-          : ultimo.outcome === "queima"
+          : last.outcome === "burn"
             ? "buzz"
             : "skip",
       );
     }
 
-    if (ultimo.outcome === "queima") {
-      const aparecer = setTimeout(() => setCarimbo(true), 0);
-      const sumir = setTimeout(() => setCarimbo(false), 1300);
+    if (last.outcome === "burn") {
+      const show = setTimeout(() => setShowStamp(true), 0);
+      const hide = setTimeout(() => setShowStamp(false), 1300);
 
       return () => {
-        clearTimeout(aparecer);
-        clearTimeout(sumir);
+        clearTimeout(show);
+        clearTimeout(hide);
       };
     }
-  }, [estado.results, turn?.judge_id, turn?.speaker_id, me.id]);
+  }, [state.results, turn?.judge_id, turn?.speaker_id, me.id]);
 
   useEffect(() => {
-    if (!rodando || seqEmJogo <= 0) {
+    if (!running || activeSeq <= 0) {
       return;
     }
 
-    tocar("card");
-  }, [seqEmJogo, rodando]);
+    playSound("card");
+  }, [activeSeq, running]);
 
   useEffect(() => {
-    if (!rodando || restante > 10 || restante <= 0) {
+    if (!running || remaining > 10 || remaining <= 0) {
       return;
     }
 
-    tocar("tick");
-  }, [restante, rodando]);
+    playSound("tick");
+  }, [remaining, running]);
 
   useEffect(() => {
-    if (!acabou) {
+    if (!timeUp) {
       return;
     }
 
-    tocar("timeup");
-  }, [acabou]);
+    playSound("timeup");
+  }, [timeUp]);
 
   useEffect(() => {
-    if (!acabou || encerrando.current) {
+    if (!timeUp || ending.current) {
       return;
     }
 
-    const atraso = souFalante ? 0 : 2500;
-    const relogio = setTimeout(() => {
-      encerrando.current = true;
+    const delay = isSpeaker ? 0 : 2500;
+    const timer = setTimeout(() => {
+      ending.current = true;
       void api
-        .encerrarTurno(room.code, token)
-        .then(onAtualizar)
+        .endTurn(room.code, token)
+        .then(onRefresh)
         .finally(() => {
-          encerrando.current = false;
+          ending.current = false;
         });
-    }, atraso);
+    }, delay);
 
-    return () => clearTimeout(relogio);
-  }, [acabou, souFalante, room.code, token, onAtualizar]);
+    return () => clearTimeout(timer);
+  }, [timeUp, isSpeaker, room.code, token, onRefresh]);
 
-  async function despachar(executar: () => Promise<unknown>) {
-    if (ocupado) {
+  async function dispatch(run: () => Promise<unknown>) {
+    if (busy) {
       return;
     }
 
-    setOcupado(true);
+    setBusy(true);
 
     try {
-      setErro("");
-      await executar();
-      onAtualizar();
-    } catch (falha) {
-      setErro(
-        falha instanceof Error ? falha.message : "Deu ruim aqui. Tente de novo.",
-      );
+      setError("");
+      await run();
+      onRefresh();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : genericError);
     } finally {
-      setOcupado(false);
+      setBusy(false);
     }
   }
 
-  async function registrar(outcome: Outcome) {
-    if (ocupado) {
+  async function record(outcome: Outcome) {
+    if (busy) {
       return;
     }
 
-    const destino =
-      outcome === "acerto"
-        ? timeDoTurno
-        : outcome === "queima"
-          ? timeAdversario(timeDoTurno)
+    const target =
+      outcome === "hit"
+        ? turnTeam
+        : outcome === "burn"
+          ? rivalOf(turnTeam)
           : null;
 
-    setSaindo(destino);
-    setOcupado(true);
-    tocar(
-      outcome === "acerto" ? "right" : outcome === "queima" ? "buzz" : "skip",
+    setLeaving(target);
+    setBusy(true);
+    playSound(
+      outcome === "hit" ? "right" : outcome === "burn" ? "buzz" : "skip",
     );
 
     try {
-      setErro("");
+      setError("");
 
-      const [proxima] = await Promise.all([
-        api.resultado(room.code, token, outcome),
-        new Promise((resolver) => setTimeout(resolver, 190)),
+      const [next] = await Promise.all([
+        api.play(room.code, token, outcome),
+        new Promise((resolve) => setTimeout(resolve, 190)),
       ]);
 
-      setCartaLocal(
-        proxima.card ? { card: proxima.card, seq: proxima.cardSeq } : null,
-      );
-      setSaindo(null);
-      onAtualizar();
-    } catch (falha) {
-      setSaindo(null);
-      setErro(
-        falha instanceof Error ? falha.message : "Deu ruim aqui. Tente de novo.",
-      );
+      setLocalCard(next.card ? { card: next.card, seq: next.cardSeq } : null);
+      setLeaving(null);
+      onRefresh();
+    } catch (failure) {
+      setLeaving(null);
+      setError(failure instanceof Error ? failure.message : genericError);
     } finally {
-      setOcupado(false);
+      setBusy(false);
     }
   }
 
-  async function desfazer() {
-    if (ocupado) {
+  async function undo() {
+    if (busy) {
       return;
     }
 
-    setOcupado(true);
+    setBusy(true);
 
     try {
-      setErro("");
-      const anterior = await api.desfazer(room.code, token);
-      setCartaLocal(
-        anterior.card ? { card: anterior.card, seq: anterior.cardSeq } : null,
+      setError("");
+      const previous = await api.undo(room.code, token);
+      setLocalCard(
+        previous.card ? { card: previous.card, seq: previous.cardSeq } : null,
       );
-      onAtualizar();
-    } catch (falha) {
-      setErro(
-        falha instanceof Error ? falha.message : "Deu ruim aqui. Tente de novo.",
-      );
+      onRefresh();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : genericError);
     } finally {
-      setOcupado(false);
+      setBusy(false);
     }
   }
 
@@ -224,44 +220,42 @@ export function TurnScreen({
   }
 
   return (
-    <main className="bolinhas bg-banana flex min-h-dvh flex-col items-center gap-3 px-4 pb-[calc(1.5rem+var(--safe-bottom))] pt-[calc(1rem+var(--safe-top))]">
-      <Scoreboard score={score} destaque={timeDoTurno} />
+    <main className="dots bg-yellow flex min-h-dvh flex-col items-center gap-3 px-4 pb-[calc(1.5rem+var(--safe-bottom))] pt-[calc(1rem+var(--safe-top))]">
+      <Scoreboard score={score} highlight={turnTeam} />
 
       <div className="flex items-center gap-3">
         <div
-          className={`traco sombra-dura font-display flex h-16 w-16 items-center justify-center rounded-full text-3xl ${
-            restante <= 10 && rodando
-              ? "bg-fogo text-creme"
-              : "bg-creme text-tinta"
+          className={`stroke-hard hard-shadow font-display flex h-16 w-16 items-center justify-center rounded-full text-3xl ${
+            remaining <= 10 && running
+              ? "bg-fire text-cream"
+              : "bg-cream text-ink"
           }`}
           style={
-            restante <= 10 && rodando
-              ? { animation: "tremor 0.5s infinite" }
+            remaining <= 10 && running
+              ? { animation: "shake 0.5s infinite" }
               : undefined
           }
         >
-          {restante}
+          {remaining}
         </div>
-        <p className="font-display text-tinta max-w-[11rem] text-sm uppercase leading-tight">
-          {nomeDe(estado, turn.speaker_id)} explica · juiz{" "}
-          {nomeDe(estado, turn.judge_id)}
+        <p className="font-display text-ink max-w-[11rem] text-sm uppercase leading-tight">
+          {nameOf(state, turn.speaker_id)} explica · juiz{" "}
+          {nameOf(state, turn.judge_id)}
         </p>
       </div>
 
       {turn.status === "ready" ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-4">
-          <p className="font-display text-tinta text-center text-xl uppercase">
-            {souFalante
+          <p className="font-display text-ink text-center text-xl uppercase">
+            {isSpeaker
               ? "A vez é sua"
-              : `Aguardando ${nomeDe(estado, turn.speaker_id)}`}
+              : `Aguardando ${nameOf(state, turn.speaker_id)}`}
           </p>
-          {souFalante ? (
+          {isSpeaker ? (
             <Button
-              cor="fogo"
-              disabled={ocupado}
-              onClick={() =>
-                despachar(() => api.comecarTurno(room.code, token))
-              }
+              color="fire"
+              disabled={busy}
+              onClick={() => dispatch(() => api.startTurn(room.code, token))}
             >
               Puxar a primeira carta
             </Button>
@@ -269,24 +263,24 @@ export function TurnScreen({
         </div>
       ) : null}
 
-      {rodando ? (
+      {running ? (
         <div className="relative flex flex-1 flex-col items-center justify-center gap-4">
-          {cartaEmJogo ? (
-            <CardView card={cartaEmJogo} chave={seqEmJogo} saindo={saindo} />
+          {activeCard ? (
+            <CardView card={activeCard} seq={activeSeq} leaving={leaving} />
           ) : (
-            <div className="bg-creme traco sombra-dura-g flex h-72 w-full max-w-xs items-center justify-center rounded-3xl px-6">
-              <p className="font-display text-tinta text-center text-xl uppercase leading-tight">
-                {souFalante || souJuiz
+            <div className="bg-cream stroke-hard hard-shadow-lg flex h-72 w-full max-w-xs items-center justify-center rounded-3xl px-6">
+              <p className="font-display text-ink text-center text-xl uppercase leading-tight">
+                {isSpeaker || isJudge
                   ? "Puxando carta"
-                  : "Só o falante e o juiz veem a carta"}
+                  : "Só quem explica e o juiz veem a carta"}
               </p>
             </div>
           )}
 
-          {carimbo ? (
+          {showStamp ? (
             <span
-              className="font-display text-fogo contorno absolute text-6xl uppercase"
-              style={{ animation: "alerta-queima 1.3s ease-out forwards" }}
+              className="font-display text-fire outline-text absolute text-6xl uppercase"
+              style={{ animation: "burn-alert 1.3s ease-out forwards" }}
             >
               Não vale!
             </span>
@@ -294,45 +288,41 @@ export function TurnScreen({
         </div>
       ) : null}
 
-      {rodando ? (
+      {running ? (
         <div className="flex w-full max-w-sm flex-col gap-2">
-          {souFalante ? (
+          {isSpeaker ? (
             <div className="flex gap-2">
               <Button
-                cor="creme"
-                disabled={ocupado}
-                className="!bg-acerto !text-creme"
-                onClick={() => registrar("acerto")}
+                color="cream"
+                disabled={busy}
+                className="!bg-hit !text-cream"
+                onClick={() => record("hit")}
               >
                 Acertou
               </Button>
-              <Button
-                cor="creme"
-                disabled={ocupado}
-                onClick={() => registrar("pulo")}
-              >
+              <Button color="cream" disabled={busy} onClick={() => record("skip")}>
                 Pular
               </Button>
             </div>
           ) : null}
 
-          {souJuiz ? (
+          {isJudge ? (
             <Button
-              cor="fogo"
-              disabled={ocupado}
+              color="fire"
+              disabled={busy}
               className="!text-4xl"
-              onClick={() => registrar("queima")}
+              onClick={() => record("burn")}
             >
               Não vale!
             </Button>
           ) : null}
 
-          {souFalante || souJuiz ? (
+          {isSpeaker || isJudge ? (
             <button
               type="button"
-              disabled={ocupado}
-              onClick={() => void desfazer()}
-              className="font-display bg-tinta text-banana traco-fino rounded-xl px-4 py-2 text-base uppercase disabled:opacity-50"
+              disabled={busy}
+              onClick={() => void undo()}
+              className="font-display bg-ink text-yellow stroke-thin rounded-xl px-4 py-2 text-base uppercase disabled:opacity-50"
             >
               Desfazer última jogada
             </button>
@@ -340,12 +330,12 @@ export function TurnScreen({
         </div>
       ) : null}
 
-      {erro ? (
+      {error ? (
         <p
-          className="bg-fogo text-creme traco-fino font-display w-full max-w-sm rounded-xl px-4 py-2 text-center text-base uppercase"
-          style={{ animation: "tremor 0.4s both" }}
+          className="bg-fire text-cream stroke-thin font-display w-full max-w-sm rounded-xl px-4 py-2 text-center text-base uppercase"
+          style={{ animation: "shake 0.4s both" }}
         >
-          {erro}
+          {error}
         </p>
       ) : null}
     </main>

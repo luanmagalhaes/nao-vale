@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { Splash } from "@/components/layout/Splash";
 import { HomeScreen } from "@/components/home/HomeScreen";
 
-type Fase = "splash" | "saindo" | "home";
+type Fase = "splash" | "leaving" | "home";
 
 export default function Page() {
-  const [fase, setFase] = useState<Fase>("splash");
+  const [phase, setFase] = useState<Fase>("splash");
 
   useEffect(() => {
-    const paraSaida = setTimeout(() => setFase("saindo"), 2100);
+    const paraSaida = setTimeout(() => setFase("leaving"), 2100);
     const paraHome = setTimeout(() => setFase("home"), 2600);
     return () => {
       clearTimeout(paraSaida);
@@ -20,7 +20,7 @@ export default function Page() {
 
   return (
     <>
-      {fase === "home" ? null : <Splash saindo={fase === "saindo"} />}
+      {phase === "home" ? null : <Splash leaving={phase === "leaving"} />}
       <HomeScreen />
     </>
   );

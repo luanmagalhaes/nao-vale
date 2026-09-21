@@ -1,6 +1,6 @@
-import { handle, jogadorPorToken, salaPorCodigo } from "@/app/api/_shared";
-import { ServiceError, mensagemPara } from "@/lib/messages";
-import { estadoDaSala } from "@/lib/game/service";
+import { handle, playerByToken, roomByCode } from "@/app/api/_shared";
+import { ServiceError, messageFor } from "@/lib/messages";
+import { roomState } from "@/lib/game/service";
 
 export async function GET(request: Request) {
   return handle(async () => {
@@ -9,12 +9,12 @@ export async function GET(request: Request) {
     const token = url.searchParams.get("token");
 
     if (!code || !token) {
-      throw new ServiceError(400, mensagemPara(400));
+      throw new ServiceError(400, messageFor(400));
     }
 
-    const sala = await salaPorCodigo(code);
-    const eu = await jogadorPorToken(sala.id, token);
+    const room = await roomByCode(code);
+    const eu = await playerByToken(room.id, token);
 
-    return estadoDaSala(sala, eu);
+    return roomState(room, eu);
   });
 }

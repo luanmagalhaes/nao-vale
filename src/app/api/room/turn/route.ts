@@ -1,48 +1,43 @@
-import { handle, lerCorpo, salaPorCodigo } from "@/app/api/_shared";
-import { ServiceError, mensagemPara } from "@/lib/messages";
-import {
-  desfazerJogada,
-  encerrarTurno,
-  iniciarTurno,
-  jogarCarta,
-} from "@/lib/game/service";
+import { handle, readBody, roomByCode } from "@/app/api/_shared";
+import { ServiceError, messageFor } from "@/lib/messages";
+import { endTurn, playCard, startTurn, undoPlay } from "@/lib/game/service";
 import type { Outcome } from "@/types/game";
 
-interface Corpo {
+interface Body {
   code?: string;
   token?: string;
-  action?: "comecar" | "resultado" | "desfazer" | "encerrar";
+  action?: "start" | "play" | "undo" | "end";
   outcome?: Outcome;
 }
 
 export async function POST(request: Request) {
   return handle(async () => {
-    const corpo = await lerCorpo<Corpo>(request);
+    const body = await readBody<Body>(request);
 
-    if (!corpo.code || !corpo.token || !corpo.action) {
-      throw new ServiceError(400, mensagemPara(400));
+    if (!body.code || !body.token || !body.action) {
+      throw new ServiceError(400, messageFor(400));
     }
 
-    if (corpo.action === "comecar") {
-      return iniciarTurno(corpo.code, corpo.token);
+    if (body.action === "start") {
+      return startTurn(body.code, body.token);
     }
 
-    if (corpo.action === "resultado" && corpo.outcome) {
-      return jogarCarta(corpo.code, corpo.token, corpo.outcome);
+    if (body.action === "play" && body.outcome) {
+      return playCard(body.code, body.token, body.outcome);
     }
 
-    if (corpo.action === "desfazer") {
-      return desfazerJogada(corpo.code, corpo.token);
+    if (body.action === "undo") {
+      return undoPlay(body.code, body.token);
     }
 
-    if (corpo.action === "encerrar") {
-      const sala = await salaPorCodigo(corpo.code);
+    if (body.action === "end") {
+      const room = await roomByCode(body.code);
 
-      await encerrarTurno(sala);
+      await endTurn(room);
 
       return { ok: true };
     }
 
-    throw new ServiceError(400, mensagemPara(400));
+    throw new ServiceError(400, messageFor(400));
   });
 }

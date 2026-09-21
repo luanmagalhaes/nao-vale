@@ -9,7 +9,7 @@ const cartoon = Luckiest_Guy({
   display: "swap",
 });
 
-const corpo = Nunito({
+const body = Nunito({
   weight: ["400", "700", "900"],
   subsets: ["latin"],
   variable: "--font-corpo",
@@ -18,7 +18,7 @@ const corpo = Nunito({
 
 export const metadata: Metadata = {
   title: "Não Vale",
-  description: "Faça seu time adivinhar a palavra sem escorregar nas proibidas.",
+  description: "Faça seu team adivinhar a palavra sem escorregar nas proibidas.",
   applicationName: "Não Vale",
   appleWebApp: {
     capable: true,
@@ -39,7 +39,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className={`${cartoon.variable} ${corpo.variable}`}>
+    <html lang="pt-BR" className={`${cartoon.variable} ${body.variable}`}>
       <body>{children}</body>
     </html>
   );

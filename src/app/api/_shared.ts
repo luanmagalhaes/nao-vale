@@ -1,52 +1,52 @@
 import { NextResponse } from "next/server";
-import { ServiceError, mensagemPara } from "@/lib/messages";
+import { ServiceError, messageFor } from "@/lib/messages";
 import { serverClient } from "@/lib/supabase/server";
 import type { PlayerRow, RoomRow, TurnRow } from "@/types/game";
 
-export async function handle<T>(acao: () => Promise<T>): Promise<NextResponse> {
+export async function handle<T>(run: () => Promise<T>): Promise<NextResponse> {
   try {
-    const resultado = await acao();
+    const outcomeCall = await run();
 
-    return NextResponse.json(resultado ?? { ok: true });
-  } catch (erro) {
-    if (erro instanceof ServiceError) {
+    return NextResponse.json(outcomeCall ?? { ok: true });
+  } catch (error) {
+    if (error instanceof ServiceError) {
       return NextResponse.json(
-        { error: erro.message },
-        { status: erro.status },
+        { error: error.message },
+        { status: error.status },
       );
     }
 
-    return NextResponse.json({ error: mensagemPara(500) }, { status: 500 });
+    return NextResponse.json({ error: messageFor(500) }, { status: 500 });
   }
 }
 
-export function exigir<T>(valor: T | null | undefined, status: number): T {
+export function demand<T>(valor: T | null | undefined, status: number): T {
   if (valor === null || valor === undefined) {
-    throw new ServiceError(status, mensagemPara(status));
+    throw new ServiceError(status, messageFor(status));
   }
 
   return valor;
 }
 
-export async function lerCorpo<T>(request: Request): Promise<T> {
+export async function readBody<T>(request: Request): Promise<T> {
   try {
     return (await request.json()) as T;
   } catch {
-    throw new ServiceError(400, mensagemPara(400));
+    throw new ServiceError(400, messageFor(400));
   }
 }
 
-export async function salaPorCodigo(code: string): Promise<RoomRow> {
+export async function roomByCode(code: string): Promise<RoomRow> {
   const { data } = await serverClient()
     .from("nv_rooms")
     .select("*")
     .eq("code", code.toUpperCase())
     .maybeSingle();
 
-  return exigir(data as RoomRow | null, 404);
+  return demand(data as RoomRow | null, 404);
 }
 
-export async function jogadorPorToken(
+export async function playerByToken(
   roomId: string,
   token: string,
 ): Promise<PlayerRow> {
@@ -57,12 +57,12 @@ export async function jogadorPorToken(
     .eq("nv_players.room_id", roomId)
     .maybeSingle();
 
-  const linha = data as { nv_players: PlayerRow } | null;
+  const row = data as { nv_players: PlayerRow } | null;
 
-  return exigir(linha?.nv_players ?? null, 401);
+  return demand(row?.nv_players ?? null, 401);
 }
 
-export async function jogadoresDaSala(roomId: string): Promise<PlayerRow[]> {
+export async function roomPlayers(roomId: string): Promise<PlayerRow[]> {
   const { data } = await serverClient()
     .from("nv_players")
     .select("*")
@@ -72,15 +72,15 @@ export async function jogadoresDaSala(roomId: string): Promise<PlayerRow[]> {
   return (data as PlayerRow[] | null) ?? [];
 }
 
-export async function turnoAtual(sala: RoomRow): Promise<TurnRow | null> {
-  if (!sala.current_turn_id) {
+export async function activeTurn(room: RoomRow): Promise<TurnRow | null> {
+  if (!room.current_turn_id) {
     return null;
   }
 
   const { data } = await serverClient()
     .from("nv_turns")
     .select("*")
-    .eq("id", sala.current_turn_id)
+    .eq("id", room.current_turn_id)
     .maybeSingle();
 
   return (data as TurnRow | null) ?? null;

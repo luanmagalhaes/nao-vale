@@ -1,6 +1,7 @@
 import type {
   Card,
   DeckMode,
+  MatchRow,
   Outcome,
   PlayerRow,
   ResultRow,
@@ -10,12 +11,12 @@ import type {
   TurnRow,
 } from "@/types/game";
 
-export interface ProximaCarta {
+export interface NextCard {
   card: Card | null;
   cardSeq: number;
 }
 
-export interface EstadoDaSala {
+export interface RoomState {
   room: RoomRow;
   players: PlayerRow[];
   turn: TurnRow | null;
@@ -26,103 +27,94 @@ export interface EstadoDaSala {
   now: string;
 }
 
-async function pedir<T>(url: string, init?: RequestInit): Promise<T> {
-  const resposta = await fetch(url, {
+async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
     cache: "no-store",
   });
 
-  const corpo = (await resposta.json()) as T & { error?: string };
+  const body = (await response.json()) as T & { error?: string };
 
-  if (!resposta.ok) {
-    throw new Error(corpo.error ?? "Deu ruim aqui. Tente de novo.");
+  if (!response.ok) {
+    throw new Error(body.error ?? "Deu ruim aqui. Tente de novo.");
   }
 
-  return corpo;
+  return body;
+}
+
+function lobby(code: string, token: string, action: string, extra = {}) {
+  return request("/api/room/lobby", {
+    method: "POST",
+    body: JSON.stringify({ code, token, action, ...extra }),
+  });
+}
+
+function turn(code: string, token: string, action: string, extra = {}) {
+  return request<NextCard>("/api/room/turn", {
+    method: "POST",
+    body: JSON.stringify({ code, token, action, ...extra }),
+  });
 }
 
 export const api = {
-  criarSala(name: string, deckMode: DeckMode) {
-    return pedir<{ code: string; token: string; playerId: string }>(
+  history() {
+    return request<{ matches: MatchRow[] }>("/api/history");
+  },
+
+  createRoom(name: string, deckMode: DeckMode) {
+    return request<{ code: string; token: string; playerId: string }>(
       "/api/room/create",
       { method: "POST", body: JSON.stringify({ name, deckMode }) },
     );
   },
 
-  entrar(code: string, name: string) {
-    return pedir<{ code: string; token: string; playerId: string }>(
+  joinRoom(code: string, name: string) {
+    return request<{ code: string; token: string; playerId: string }>(
       "/api/room/join",
       { method: "POST", body: JSON.stringify({ code, name }) },
     );
   },
 
-  estado(code: string, token: string) {
-    return pedir<EstadoDaSala>(
+  state(code: string, token: string) {
+    return request<RoomState>(
       `/api/room/state?code=${encodeURIComponent(code)}&token=${encodeURIComponent(token)}`,
     );
   },
 
-  trocarTime(code: string, token: string, team: Team) {
-    return pedir("/api/room/lobby", {
-      method: "POST",
-      body: JSON.stringify({ code, token, action: "time", team }),
-    });
+  changeTeam(code: string, token: string, team: Team) {
+    return lobby(code, token, "team", { team });
   },
 
-  trocarBaralho(code: string, token: string, deckMode: DeckMode) {
-    return pedir("/api/room/lobby", {
-      method: "POST",
-      body: JSON.stringify({ code, token, action: "baralho", deckMode }),
-    });
+  changeDeck(code: string, token: string, deckMode: DeckMode) {
+    return lobby(code, token, "deck", { deckMode });
   },
 
-  sortearTimes(code: string, token: string) {
-    return pedir("/api/room/lobby", {
-      method: "POST",
-      body: JSON.stringify({ code, token, action: "sortear" }),
-    });
+  drawTeams(code: string, token: string) {
+    return lobby(code, token, "draw");
   },
 
-  comecarJogo(code: string, token: string) {
-    return pedir("/api/room/lobby", {
-      method: "POST",
-      body: JSON.stringify({ code, token, action: "comecar" }),
-    });
+  startGame(code: string, token: string) {
+    return lobby(code, token, "start");
   },
 
-  reiniciar(code: string, token: string) {
-    return pedir("/api/room/lobby", {
-      method: "POST",
-      body: JSON.stringify({ code, token, action: "reiniciar" }),
-    });
+  restart(code: string, token: string) {
+    return lobby(code, token, "restart");
   },
 
-  comecarTurno(code: string, token: string) {
-    return pedir("/api/room/turn", {
-      method: "POST",
-      body: JSON.stringify({ code, token, action: "comecar" }),
-    });
+  startTurn(code: string, token: string) {
+    return turn(code, token, "start");
   },
 
-  resultado(code: string, token: string, outcome: Outcome) {
-    return pedir<ProximaCarta>("/api/room/turn", {
-      method: "POST",
-      body: JSON.stringify({ code, token, action: "resultado", outcome }),
-    });
+  play(code: string, token: string, outcome: Outcome) {
+    return turn(code, token, "play", { outcome });
   },
 
-  desfazer(code: string, token: string) {
-    return pedir<ProximaCarta>("/api/room/turn", {
-      method: "POST",
-      body: JSON.stringify({ code, token, action: "desfazer" }),
-    });
+  undo(code: string, token: string) {
+    return turn(code, token, "undo");
   },
 
-  encerrarTurno(code: string, token: string) {
-    return pedir("/api/room/turn", {
-      method: "POST",
-      body: JSON.stringify({ code, token, action: "encerrar" }),
-    });
+  endTurn(code: string, token: string) {
+    return turn(code, token, "end");
   },
 };

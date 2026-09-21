@@ -6,150 +6,145 @@ import type {
   Team,
 } from "@/types/game";
 
-export const times: readonly Team[] = ["vermelho", "azul"];
+export const teams: readonly Team[] = ["red", "blue"];
 
 export const minPlayers = 4;
 export const maxPlayers = 16;
+export const codeLength = 2;
 
-export function timeAdversario(time: Team): Team {
-  return time === "vermelho" ? "azul" : "vermelho";
+export function rivalOf(team: Team): Team {
+  return team === "red" ? "blue" : "red";
 }
 
-export function scoringTeam(outcome: Outcome, timeDoFalante: Team): Team | null {
-  if (outcome === "acerto") {
-    return timeDoFalante;
+export function scoringTeam(outcome: Outcome, speakerTeam: Team): Team | null {
+  if (outcome === "hit") {
+    return speakerTeam;
   }
 
-  if (outcome === "queima") {
-    return timeAdversario(timeDoFalante);
+  if (outcome === "burn") {
+    return rivalOf(speakerTeam);
   }
 
   return null;
 }
 
-export function placar(results: readonly ResultRow[]): Score {
+export function scoreFrom(results: readonly ResultRow[]): Score {
   return results.reduce<Score>(
-    (acumulado, resultado) => {
-      if (resultado.undone || !resultado.scoring_team) {
-        return acumulado;
+    (acc, result) => {
+      if (result.undone || !result.scoring_team) {
+        return acc;
       }
 
       return {
-        ...acumulado,
-        [resultado.scoring_team]: acumulado[resultado.scoring_team] + 1,
+        ...acc,
+        [result.scoring_team]: acc[result.scoring_team] + 1,
       };
     },
-    { vermelho: 0, azul: 0 },
+    { red: 0, blue: 0 },
   );
 }
 
-export function vencedor(score: Score): Team | "empate" {
-  if (score.vermelho > score.azul) {
-    return "vermelho";
+export function winnerOf(score: Score): Team | "tie" {
+  if (score.red > score.blue) {
+    return "red";
   }
 
-  if (score.azul > score.vermelho) {
-    return "azul";
+  if (score.blue > score.red) {
+    return "blue";
   }
 
-  return "empate";
+  return "tie";
 }
 
-export function timesEquilibrados(players: readonly PlayerRow[]): boolean {
-  const vermelho = players.filter((jogador) => jogador.team === "vermelho").length;
-  const azul = players.filter((jogador) => jogador.team === "azul").length;
+export function teamsBalanced(players: readonly PlayerRow[]): boolean {
+  const red = players.filter((player) => player.team === "red").length;
+  const blue = players.filter((player) => player.team === "blue").length;
 
-  return vermelho >= 2 && azul >= 2;
+  return red >= 2 && blue >= 2;
 }
 
-export function semTime(players: readonly PlayerRow[]): PlayerRow[] {
-  return players.filter((jogador) => jogador.team === null);
+export function withoutTeam(players: readonly PlayerRow[]): PlayerRow[] {
+  return players.filter((player) => player.team === null);
 }
 
-export function podeComecar(players: readonly PlayerRow[]): boolean {
+export function canStart(players: readonly PlayerRow[]): boolean {
   return (
     players.length >= minPlayers &&
-    semTime(players).length === 0 &&
-    timesEquilibrados(players)
+    withoutTeam(players).length === 0 &&
+    teamsBalanced(players)
   );
 }
 
-export interface PlanoDeTurno {
+export interface TurnPlan {
   speakerId: string;
   judgeId: string;
   team: Team;
 }
 
-export function proximoTurno(
+export function nextTurn(
   players: readonly PlayerRow[],
-  timeAnterior: Team | null,
-): PlanoDeTurno | null {
-  const pendentes = players.filter(
-    (jogador) => !jogador.has_spoken && jogador.team !== null,
+  previousTeam: Team | null,
+): TurnPlan | null {
+  const pending = players.filter(
+    (player) => !player.has_spoken && player.team !== null,
   );
 
-  if (pendentes.length === 0) {
+  if (pending.length === 0) {
     return null;
   }
 
-  const preferido = timeAnterior ? timeAdversario(timeAnterior) : "vermelho";
-  const temPreferido = pendentes.some((jogador) => jogador.team === preferido);
-  const time = temPreferido ? preferido : timeAdversario(preferido);
+  const preferred = previousTeam ? rivalOf(previousTeam) : "red";
+  const hasPreferred = pending.some((player) => player.team === preferred);
+  const team = hasPreferred ? preferred : rivalOf(preferred);
 
-  const falante = [...pendentes]
-    .filter((jogador) => jogador.team === time)
+  const speaker = [...pending]
+    .filter((player) => player.team === team)
     .sort((a, b) => a.seat - b.seat)[0];
 
-  if (!falante) {
+  if (!speaker) {
     return null;
   }
 
-  const adversarios = players.filter(
-    (jogador) => jogador.team === timeAdversario(time),
-  );
+  const rivals = players.filter((player) => player.team === rivalOf(team));
 
-  const juiz = [...adversarios].sort(
+  const judge = [...rivals].sort(
     (a, b) => a.judged_count - b.judged_count || a.seat - b.seat,
   )[0];
 
-  if (!juiz) {
+  if (!judge) {
     return null;
   }
 
-  return { speakerId: falante.id, judgeId: juiz.id, team: time };
+  return { speakerId: speaker.id, judgeId: judge.id, team };
 }
 
-export function jogoAcabou(players: readonly PlayerRow[]): boolean {
-  const comTime = players.filter((jogador) => jogador.team !== null);
+export function isGameOver(players: readonly PlayerRow[]): boolean {
+  const withTeam = players.filter((player) => player.team !== null);
 
-  return (
-    comTime.length > 0 && comTime.every((jogador) => jogador.has_spoken)
-  );
+  return withTeam.length > 0 && withTeam.every((player) => player.has_spoken);
 }
 
-export function embaralhar<T>(itens: readonly T[]): T[] {
-  const copia = [...itens];
+export function shuffle<T>(items: readonly T[]): T[] {
+  const copy = [...items];
 
-  for (let indice = copia.length - 1; indice > 0; indice -= 1) {
-    const sorteado = Math.floor(Math.random() * (indice + 1));
-    [copia[indice], copia[sorteado]] = [copia[sorteado], copia[indice]];
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const picked = Math.floor(Math.random() * (index + 1));
+    [copy[index], copy[picked]] = [copy[picked], copy[index]];
   }
 
-  return copia;
+  return copy;
 }
 
-export const tamanhoDoCodigo = 2;
-
-export function gerarCodigo(): string {
+export function makeCode(): string {
   return String(10 + Math.floor(Math.random() * 90));
 }
 
-export function distribuirTimes(players: readonly PlayerRow[]): Map<string, Team> {
-  const mapa = new Map<string, Team>();
+export function assignTeams(players: readonly PlayerRow[]): Map<string, Team> {
+  const map = new Map<string, Team>();
 
-  embaralhar(players).forEach((jogador, indice) => {
-    mapa.set(jogador.id, indice % 2 === 0 ? "vermelho" : "azul");
+  shuffle(players).forEach((player, index) => {
+    map.set(player.id, index % 2 === 0 ? "red" : "blue");
   });
 
-  return mapa;
+  return map;
 }

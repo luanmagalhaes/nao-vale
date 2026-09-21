@@ -1,76 +1,76 @@
 "use client";
 
-export interface Sessao {
+export interface Session {
   code: string;
   token: string;
   playerId: string;
 }
 
-const chave = "nao-vale:sessao";
-const chaveTutorial = "nao-vale:tutorial";
+const key = "nao-vale:sessao";
+const tutorialKey = "nao-vale:tutorial";
 
-const ouvintes = new Set<() => void>();
+const listeners = new Set<() => void>();
 
-let cacheBruto: string | null = null;
-let cacheSessao: Sessao | null = null;
+let cachedRaw: string | null = null;
+let cachedSession: Session | null = null;
 
-function avisar() {
-  ouvintes.forEach((ouvinte) => ouvinte());
+function notify() {
+  listeners.forEach((listener) => listener());
 }
 
-export function inscrever(ouvinte: () => void) {
-  ouvintes.add(ouvinte);
-  window.addEventListener("storage", ouvinte);
+export function subscribe(listener: () => void) {
+  listeners.add(listener);
+  window.addEventListener("storage", listener);
 
   return () => {
-    ouvintes.delete(ouvinte);
-    window.removeEventListener("storage", ouvinte);
+    listeners.delete(listener);
+    window.removeEventListener("storage", listener);
   };
 }
 
-export function lerSessao(): Sessao | null {
-  const bruto =
-    window.sessionStorage.getItem(chave) ?? window.localStorage.getItem(chave);
+export function readSession(): Session | null {
+  const raw =
+    window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key);
 
-  if (bruto !== cacheBruto) {
-    cacheBruto = bruto;
+  if (raw !== cachedRaw) {
+    cachedRaw = raw;
 
     try {
-      cacheSessao = bruto ? (JSON.parse(bruto) as Sessao) : null;
+      cachedSession = raw ? (JSON.parse(raw) as Session) : null;
     } catch {
-      cacheSessao = null;
+      cachedSession = null;
     }
   }
 
-  return cacheSessao;
+  return cachedSession;
 }
 
-export function sessaoDoServidor(): Sessao | null {
+export function sessionOnServer(): Session | null {
   return null;
 }
 
-export function guardarSessao(sessao: Sessao, apenasNestaAba = false) {
-  const destino = apenasNestaAba ? window.sessionStorage : window.localStorage;
+export function saveSession(sessao: Session, thisTabOnly = false) {
+  const target = thisTabOnly ? window.sessionStorage : window.localStorage;
 
-  destino.setItem(chave, JSON.stringify(sessao));
-  avisar();
+  target.setItem(key, JSON.stringify(sessao));
+  notify();
 }
 
-export function limparSessao() {
-  window.sessionStorage.removeItem(chave);
-  window.localStorage.removeItem(chave);
-  avisar();
+export function clearSession() {
+  window.sessionStorage.removeItem(key);
+  window.localStorage.removeItem(key);
+  notify();
 }
 
-export function lerTutorialVisto(): boolean {
-  return window.localStorage.getItem(chaveTutorial) === "1";
+export function readTutorialSeen(): boolean {
+  return window.localStorage.getItem(tutorialKey) === "1";
 }
 
-export function tutorialDoServidor(): boolean {
+export function tutorialOnServer(): boolean {
   return true;
 }
 
-export function marcarTutorialVisto() {
-  window.localStorage.setItem(chaveTutorial, "1");
-  avisar();
+export function markTutorialSeen() {
+  window.localStorage.setItem(tutorialKey, "1");
+  notify();
 }

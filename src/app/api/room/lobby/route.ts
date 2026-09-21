@@ -1,63 +1,63 @@
 import {
   handle,
-  jogadorPorToken,
-  lerCorpo,
-  salaPorCodigo,
+  playerByToken,
+  readBody,
+  roomByCode,
 } from "@/app/api/_shared";
-import { ServiceError, mensagemPara } from "@/lib/messages";
+import { ServiceError, messageFor } from "@/lib/messages";
 import {
-  comecarJogo,
-  definirBaralho,
-  definirTime,
-  distribuirTimesAutomatico,
-  reiniciarPartida,
+  restartMatch,
+  setDeck,
+  setTeam,
+  shuffleTeams,
+  startGame,
 } from "@/lib/game/service";
 import type { DeckMode, Team } from "@/types/game";
 
-interface Corpo {
+interface Body {
   code?: string;
   token?: string;
-  action?: "time" | "baralho" | "comecar" | "sortear" | "reiniciar";
+  action?: "team" | "deck" | "draw" | "start" | "restart";
   team?: Team;
   deckMode?: DeckMode;
 }
 
 export async function POST(request: Request) {
   return handle(async () => {
-    const corpo = await lerCorpo<Corpo>(request);
+    const body = await readBody<Body>(request);
 
-    if (!corpo.code || !corpo.token || !corpo.action) {
-      throw new ServiceError(400, mensagemPara(400));
+    if (!body.code || !body.token || !body.action) {
+      throw new ServiceError(400, messageFor(400));
     }
 
-    const sala = await salaPorCodigo(corpo.code);
-    const eu = await jogadorPorToken(sala.id, corpo.token);
+    const room = await roomByCode(body.code);
+    const me = await playerByToken(room.id, body.token);
 
-    if (corpo.action === "time" && corpo.team) {
-      await definirTime(sala, eu, corpo.team);
+    if (body.action === "team" && body.team) {
+      await setTeam(room, me, body.team);
       return { ok: true };
     }
 
-    if (corpo.action === "baralho" && corpo.deckMode) {
-      await definirBaralho(sala, eu, corpo.deckMode);
+    if (body.action === "deck" && body.deckMode) {
+      await setDeck(room, me, body.deckMode);
       return { ok: true };
     }
 
-    if (corpo.action === "sortear") {
-      await distribuirTimesAutomatico(sala, eu);
+    if (body.action === "draw") {
+      await shuffleTeams(room, me);
       return { ok: true };
     }
 
-    if (corpo.action === "comecar") {
-      await comecarJogo(sala, eu);
+    if (body.action === "start") {
+      await startGame(room, me);
       return { ok: true };
     }
 
-    if (corpo.action === "reiniciar") {
-      await reiniciarPartida(sala, eu);
+    if (body.action === "restart") {
+      await restartMatch(room, me);
       return { ok: true };
     }
 
-    throw new ServiceError(400, mensagemPara(400));
+    throw new ServiceError(400, messageFor(400));
   });
 }

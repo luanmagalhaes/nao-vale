@@ -9,45 +9,45 @@ import { deckSizes } from "@/data/deck";
 import { minPlayers } from "@/lib/game/rules";
 import type { Card } from "@/types/game";
 
-const cartaExemplo: Card = {
+const sampleCard: Card = {
   id: "exemplo",
   word: "Praia",
   forbidden: ["MAR", "AREIA", "SOL", "VERÃO", "BIQUÍNI"],
-  heat: "suave",
+  heat: "mild",
 };
 
-function Bom({ children }: { children: ReactNode }) {
-  return <strong className="font-display text-acerto font-normal">{children}</strong>;
+function Good({ children }: { children: ReactNode }) {
+  return <strong className="font-display text-hit font-normal">{children}</strong>;
 }
 
-function Ruim({ children }: { children: ReactNode }) {
-  return <strong className="font-display text-fogo font-normal">{children}</strong>;
+function Bad({ children }: { children: ReactNode }) {
+  return <strong className="font-display text-fire font-normal">{children}</strong>;
 }
 
 interface Slide {
-  titulo: string;
-  tom: string;
-  arte: ReactNode;
-  corpo: ReactNode;
+  title: string;
+  tone: string;
+  art: ReactNode;
+  body: ReactNode;
 }
 
 const slides: Slide[] = [
   {
-    titulo: "Presta atenção, benção!",
-    tom: "bg-ceu text-creme",
-    arte: (
+    title: "Presta atenção, benção!",
+    tone: "bg-sky text-cream",
+    art: (
       <div className="flex items-center justify-center gap-2">
-        <ThumbArt direcao="cima" className="h-14 w-14" />
-        <ThumbArt direcao="baixo" className="h-14 w-14" />
+        <ThumbArt direction="up" className="h-14 w-14" />
+        <ThumbArt direction="down" className="h-14 w-14" />
       </div>
     ),
-    corpo: (
+    body: (
       <div className="flex flex-col gap-3 text-center">
         <p className="text-base font-bold leading-snug">
           Você faz o seu time adivinhar a palavra da carta{" "}
-          <Ruim>sem falar nenhuma das cinco proibidas</Ruim>.
+          <Bad>sem falar nenhuma das cinco proibidas</Bad>.
         </p>
-        <div className="bg-banana traco rounded-2xl p-3">
+        <div className="bg-yellow stroke-hard rounded-2xl p-3">
           <p className="font-display text-xl uppercase leading-tight">
             Explicar &quot;praia&quot;
           </p>
@@ -63,37 +63,37 @@ const slides: Slide[] = [
     ),
   },
   {
-    titulo: "Assim é a carta",
-    tom: "bg-banana text-tinta",
-    arte: (
+    title: "Assim é a carta",
+    tone: "bg-yellow text-ink",
+    art: (
       <div className="flex scale-90 justify-center">
-        <CardView card={cartaExemplo} chave={0} saindo={null} />
+        <CardView card={sampleCard} seq={0} leaving={null} />
       </div>
     ),
-    corpo: (
+    body: (
       <div className="flex flex-col gap-3 text-center">
         <p className="text-sm font-bold leading-snug">
-          A <Bom>joinha pra cima</Bom> mostra a palavra que o seu time precisa
+          A <Good>joinha pra cima</Good> mostra a palavra que o seu time precisa
           acertar.
         </p>
         <p className="text-sm font-bold leading-snug">
-          A <Ruim>joinha pra baixo</Ruim> lista as cinco que você não pode
+          A <Bad>joinha pra baixo</Bad> lista as cinco que você não pode
           deixar escapar.
         </p>
       </div>
     ),
   },
   {
-    titulo: "O juiz é do outro time",
-    tom: "bg-time-azul text-creme",
-    arte: <PhonesArt />,
-    corpo: (
+    title: "O juiz é do outro team",
+    tone: "bg-team-blue text-cream",
+    art: <PhonesArt />,
+    body: (
       <div className="flex flex-col gap-3 text-center">
         <p className="text-base font-bold leading-snug">
-          Enquanto você explica, <Ruim>uma pessoa do time adversário</Ruim> vê a
+          Enquanto você explica, <Bad>uma pessoa do time adversário</Bad> vê a
           mesma carta no celular dela.
         </p>
-        <div className="bg-fogo text-creme traco rounded-2xl p-3">
+        <div className="bg-fire text-cream stroke-hard rounded-2xl p-3">
           <p className="font-display text-2xl uppercase leading-none">
             Falou proibida?
           </p>
@@ -112,45 +112,45 @@ const slides: Slide[] = [
     ),
   },
   {
-    titulo: "Os botões da rodada",
-    tom: "bg-tangerina text-creme",
-    arte: (
+    title: "Os botões da rodada",
+    tone: "bg-orange text-cream",
+    art: (
       <div className="flex flex-wrap items-center justify-center gap-1.5">
-        <span className="font-display bg-acerto text-creme traco rounded-lg px-2 py-1 text-xs uppercase">
+        <span className="font-display bg-hit text-cream stroke-hard rounded-lg px-2 py-1 text-xs uppercase">
           Acertou
         </span>
-        <span className="font-display bg-creme text-tinta traco rounded-lg px-2 py-1 text-xs uppercase">
+        <span className="font-display bg-cream text-ink stroke-hard rounded-lg px-2 py-1 text-xs uppercase">
           Pular
         </span>
-        <span className="font-display bg-fogo text-creme traco rounded-lg px-2 py-1 text-xs uppercase">
+        <span className="font-display bg-fire text-cream stroke-hard rounded-lg px-2 py-1 text-xs uppercase">
           Não vale
         </span>
       </div>
     ),
-    corpo: (
+    body: (
       <div className="flex flex-col gap-2.5">
-        <div className="bg-creme traco rounded-2xl p-3">
-          <p className="font-display text-acerto text-lg uppercase">Acertou</p>
+        <div className="bg-cream stroke-hard rounded-2xl p-3">
+          <p className="font-display text-hit text-lg uppercase">Acertou</p>
           <p className="text-xs font-bold">
             Quem explica aperta quando o time acerta. A carta voa pro seu lado e
-            vale <Bom>um ponto</Bom>.
+            vale <Good>um ponto</Good>.
           </p>
         </div>
-        <div className="bg-creme traco rounded-2xl p-3">
+        <div className="bg-cream stroke-hard rounded-2xl p-3">
           <p className="font-display text-lg uppercase">Pular</p>
           <p className="text-xs font-bold">
             Carta difícil volta pro fim do baralho e{" "}
-            <strong>ninguém pontua</strong>. Serve pra não travar a rodada.
+            <strong>ninguém pontua</strong>. Serve pra não travar a round.
           </p>
         </div>
-        <div className="bg-creme traco rounded-2xl p-3">
-          <p className="font-display text-fogo text-lg uppercase">Não vale</p>
+        <div className="bg-cream stroke-hard rounded-2xl p-3">
+          <p className="font-display text-fire text-lg uppercase">Não vale</p>
           <p className="text-xs font-bold">
             Só o juiz tem esse botão. A carta vai pro{" "}
-            <Ruim>time adversário</Ruim>.
+            <Bad>team adversário</Bad>.
           </p>
         </div>
-        <div className="border-tinta/40 rounded-2xl border-2 border-dashed p-3">
+        <div className="border-ink/40 rounded-2xl border-2 border-dashed p-3">
           <p className="text-xs font-bold">
             Apertou errado? Tem <strong>Desfazer última jogada</strong>. O ponto
             volta e a carta também.
@@ -160,27 +160,27 @@ const slides: Slide[] = [
     ),
   },
   {
-    titulo: "Como termina",
-    tom: "bg-time-vermelho text-creme",
-    arte: (
+    title: "Como termina",
+    tone: "bg-team-red text-cream",
+    art: (
       <div className="flex items-center justify-center gap-2">
         {["60", "s"].map((pedaco) => (
           <span
             key={pedaco}
-            className="font-display bg-creme text-tinta traco flex h-14 w-12 items-center justify-center rounded-xl text-2xl"
+            className="font-display bg-cream text-ink stroke-hard flex h-14 w-12 items-center justify-center rounded-xl text-2xl"
           >
             {pedaco}
           </span>
         ))}
       </div>
     ),
-    corpo: (
+    body: (
       <div className="flex flex-col gap-3 text-center">
         <p className="text-base font-bold leading-snug">
-          Cada pessoa tem <Bom>60 segundos</Bom> explicando, e passa a vez entre
+          Cada person tem <Good>60 segundos</Good> explicando, e passa a vez entre
           os times.
         </p>
-        <div className="bg-banana traco text-tinta rounded-2xl p-3">
+        <div className="bg-yellow stroke-hard text-ink rounded-2xl p-3">
           <p className="font-display text-lg uppercase leading-tight">
             O jogo acaba quando todo mundo explicou uma vez
           </p>
@@ -196,43 +196,43 @@ const slides: Slide[] = [
     ),
   },
   {
-    titulo: "Escolha o baralho",
-    tom: "bg-extra text-creme",
-    arte: (
+    title: "Escolha o baralho",
+    tone: "bg-extra text-cream",
+    art: (
       <div className="flex items-center justify-center gap-1.5">
-        <span className="font-display bg-creme text-tinta traco rounded-lg px-2 py-1 text-xs uppercase">
+        <span className="font-display bg-cream text-ink stroke-hard rounded-lg px-2 py-1 text-xs uppercase">
           De boa
         </span>
-        <span className="font-display bg-picante text-creme traco rounded-lg px-2 py-1 text-xs uppercase">
+        <span className="font-display bg-spicy text-cream stroke-hard rounded-lg px-2 py-1 text-xs uppercase">
           Picante
         </span>
-        <span className="font-display bg-extra text-creme traco rounded-lg px-2 py-1 text-xs uppercase">
+        <span className="font-display bg-extra text-cream stroke-hard rounded-lg px-2 py-1 text-xs uppercase">
           Extra
         </span>
       </div>
     ),
-    corpo: (
+    body: (
       <div className="flex flex-col gap-2.5 text-center">
-        <div className="bg-creme text-tinta traco rounded-2xl p-3">
+        <div className="bg-cream text-ink stroke-hard rounded-2xl p-3">
           <p className="font-display text-lg uppercase">De boa</p>
           <p className="text-xs font-bold">
-            {deckSizes.suave} cartas sem malícia nenhuma. Pode jogar com
+            {deckSizes.mild} cartas sem malícia nenhuma. Pode jogar com
             criança na mesa.
           </p>
         </div>
-        <div className="bg-creme text-tinta traco rounded-2xl p-3">
-          <p className="font-display text-picante text-lg uppercase">
+        <div className="bg-cream text-ink stroke-hard rounded-2xl p-3">
+          <p className="font-display text-spicy text-lg uppercase">
             Picante + extra
           </p>
           <p className="text-xs font-bold">
-            {deckSizes.apimentado} cartas adultas. Só entre gente grande.
+            {deckSizes.hot} cartas adultas. Só entre gente grande.
           </p>
         </div>
-        <div className="bg-creme text-tinta traco rounded-2xl p-3">
+        <div className="bg-cream text-ink stroke-hard rounded-2xl p-3">
           <p className="font-display text-lg uppercase">Misto</p>
           <p className="text-xs font-bold">
-            As {deckSizes.misto} cartas embaralhadas. A picante aparece sem
-            avisar.
+            As {deckSizes.mixed} cartas embaralhadas. A picante aparece sem
+            notify.
           </p>
         </div>
       </div>
@@ -241,58 +241,58 @@ const slides: Slide[] = [
 ];
 
 export function HowToPlay({ onClose }: { onClose: () => void }) {
-  const [passo, setPasso] = useState(0);
-  const slide = slides[passo];
-  const ultimo = passo === slides.length - 1;
+  const [step, setPasso] = useState(0);
+  const slide = slides[step];
+  const isLast = step === slides.length - 1;
 
   return (
-    <div className="bg-tinta/80 fixed inset-0 z-[60] flex items-end justify-center p-3 sm:items-center">
+    <div className="bg-ink/80 fixed inset-0 z-[60] flex items-end justify-center p-3 sm:items-center">
       <div
-        className="bg-creme traco flex max-h-[calc(100dvh-1.5rem)] w-full max-w-sm flex-col overflow-hidden rounded-3xl shadow-[0_12px_0_var(--color-tinta)]"
-        style={{ animation: "pulo-entrada 0.45s both" }}
+        className="bg-cream stroke-hard flex max-h-[calc(100dvh-1.5rem)] w-full max-w-sm flex-col overflow-hidden rounded-3xl shadow-[0_12px_0_var(--color-ink)]"
+        style={{ animation: "bounce-in 0.45s both" }}
       >
-        <div className={`shrink-0 px-4 pb-4 pt-5 text-center ${slide.tom}`}>
-          {slide.arte}
+        <div className={`shrink-0 px-4 pb-4 pt-5 text-center ${slide.tone}`}>
+          {slide.art}
           <h2 className="font-display mt-3 text-2xl uppercase leading-tight">
-            {slide.titulo}
+            {slide.title}
           </h2>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
-          {slide.corpo}
+        <div className="scroll-area min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+          {slide.body}
         </div>
 
-        <div className="border-tinta/10 shrink-0 border-t-2 px-4 pb-4 pt-3">
+        <div className="border-ink/10 shrink-0 border-t-2 px-4 pb-4 pt-3">
           <div className="mb-3 flex items-center justify-center gap-1.5">
-            {slides.map((item, indice) => (
+            {slides.map((item, index) => (
               <button
-                key={item.titulo}
+                key={item.title}
                 type="button"
-                onClick={() => setPasso(indice)}
-                aria-label={`Ir para a parte ${indice + 1}: ${item.titulo}`}
-                aria-current={indice === passo}
-                className={`font-display traco-fino flex h-7 w-6 items-center justify-center rounded-md text-xs transition-transform duration-200 ${
-                  indice === passo
-                    ? "bg-fogo text-creme scale-110"
-                    : "bg-creme text-tinta/40"
+                onClick={() => setPasso(index)}
+                aria-label={`Ir para a parte ${index + 1}: ${item.title}`}
+                aria-current={index === step}
+                className={`font-display stroke-thin flex h-7 w-6 items-center justify-center rounded-md text-xs transition-transform duration-200 ${
+                  index === step
+                    ? "bg-fire text-cream scale-110"
+                    : "bg-cream text-ink/40"
                 }`}
               >
-                {indice + 1}
+                {index + 1}
               </button>
             ))}
           </div>
 
           <div className="flex gap-2">
-            {passo > 0 ? (
-              <Button cor="creme" onClick={() => setPasso(passo - 1)}>
+            {step > 0 ? (
+              <Button cor="creme" onClick={() => setPasso(step - 1)}>
                 Voltar
               </Button>
             ) : null}
             <Button
-              cor={ultimo ? "fogo" : "tinta"}
-              onClick={() => (ultimo ? onClose() : setPasso(passo + 1))}
+              cor={isLast ? "fogo" : "tinta"}
+              onClick={() => (isLast ? onClose() : setPasso(step + 1))}
             >
-              {ultimo ? "Valeu, pai. Entendido" : "Saquei"}
+              {isLast ? "Valeu, pai. Entendido" : "Saquei"}
             </Button>
           </div>
         </div>
