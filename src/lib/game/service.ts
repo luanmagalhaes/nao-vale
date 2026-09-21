@@ -74,7 +74,11 @@ async function createSecret(playerId: string): Promise<string> {
   return secret;
 }
 
-export async function createRoom(rawName: string, deckMode: DeckMode) {
+export async function createRoom(
+  rawName: string,
+  deckMode: DeckMode,
+  isTest = false,
+) {
   const name = rawName.trim();
 
   if (name.length < 2) {
@@ -85,7 +89,7 @@ export async function createRoom(rawName: string, deckMode: DeckMode) {
 
   const { data: room } = await serverClient()
     .from("nv_rooms")
-    .insert({ code, deck_mode: deckMode })
+    .insert({ code, deck_mode: deckMode, is_test: isTest })
     .select("*")
     .single();
 
@@ -689,6 +693,10 @@ export async function endTurn(room: RoomRow) {
 }
 
 async function saveMatch(room: RoomRow, players: PlayerRow[]) {
+  if (room.is_test) {
+    return;
+  }
+
   const results = await roomResults(room.id);
   const score = scoreFrom(results);
 

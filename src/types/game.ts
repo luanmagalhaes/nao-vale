@@ -37,6 +37,7 @@ export interface RoomRow {
   status: RoomStatus;
   current_turn_id: string | null;
   round_number: number;
+  is_test: boolean;
 }
 
 export interface TurnRow {
