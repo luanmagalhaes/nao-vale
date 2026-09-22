@@ -2,18 +2,21 @@ import { copy } from "@/data/copy";
 
 type Size = "lg" | "md" | "sm";
 
-const scales: Record<Size, { row: string; badge: string }> = {
+const scales: Record<Size, { row: string; badge: string; pad: string }> = {
   lg: {
     row: "text-[17vw] leading-[1.02] sm:text-[6.5rem]",
     badge: "text-base px-4 py-1.5",
+    pad: "px-6 py-7",
   },
   md: {
     row: "text-[12vw] leading-[1.02] sm:text-[4.25rem]",
     badge: "text-sm px-3 py-1",
+    pad: "px-5 py-6",
   },
   sm: {
     row: "text-[7.5vw] leading-[1.05] sm:text-3xl",
     badge: "text-[10px] px-2 py-0.5",
+    pad: "px-3 py-4",
   },
 };
 
@@ -27,7 +30,9 @@ export function Wordmark({
   const scale = scales[size];
 
   return (
-    <div className="flex select-none flex-col items-center px-[0.2em]">
+    <div
+      className={`flex select-none flex-col items-center px-[0.2em] ${scale.pad}`}
+    >
       <span
         className={`font-display text-cream outline-text inline-block px-[0.08em] ${scale.row} -rotate-3`}
       >
