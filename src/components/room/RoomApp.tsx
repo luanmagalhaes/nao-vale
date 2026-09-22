@@ -47,7 +47,7 @@ export function RoomApp({ code }: { code: string }) {
         <p className="font-display text-ink text-center text-xl uppercase">
           Você ainda não entrou nessa room
         </p>
-        <Button cor="fogo" onClick={() => router.push("/")}>
+        <Button color="fire" onClick={() => router.push("/")}>
           Ir para o começo
         </Button>
       </main>
@@ -71,7 +71,7 @@ export function RoomApp({ code }: { code: string }) {
           {error ?? "Não achei essa sala"}
         </p>
         <Button
-          cor="creme"
+          color="cream"
           onClick={() => {
             clearSession();
             router.push("/");

@@ -628,9 +628,18 @@ export async function endTurn(room: RoomRow) {
     .update({ status: "done" })
     .eq("id", turn.id);
 
+  const { data: speakerRow } = await serverClient()
+    .from("nv_players")
+    .select("spoke_count")
+    .eq("id", turn.speaker_id)
+    .maybeSingle();
+
   await serverClient()
     .from("nv_players")
-    .update({ has_spoken: true })
+    .update({
+      has_spoken: true,
+      spoke_count: ((speakerRow as { spoke_count: number } | null)?.spoke_count ?? 0) + 1,
+    })
     .eq("id", turn.speaker_id);
 
   if (turn.judge_id) {
@@ -724,7 +733,7 @@ export async function restartMatch(room: RoomRow, eu: PlayerRow) {
   await client.from("nv_turns").delete().eq("room_id", room.id);
   await client
     .from("nv_players")
-    .update({ has_spoken: false, judged_count: 0 })
+    .update({ has_spoken: false, spoke_count: 0, judged_count: 0 })
     .eq("room_id", room.id);
 
   await client

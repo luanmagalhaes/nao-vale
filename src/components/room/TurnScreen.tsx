@@ -51,10 +51,12 @@ export function TurnScreen({
     localAhead && localCard ? localCard.seq : (turn?.card_seq ?? 0);
 
   const endsAt = turn?.ends_at ? new Date(turn.ends_at).getTime() : 0;
-  const remaining = running
+  const secondsLeft = running
     ? Math.max(0, Math.ceil((endsAt - now) / 1000))
     : room.turn_seconds;
-  const timeUp = running && remaining <= 0;
+  const remaining = Math.min(secondsLeft, room.turn_seconds);
+  const warmingUp = running && secondsLeft > room.turn_seconds;
+  const timeUp = running && secondsLeft <= 0;
 
   useEffect(() => {
     const last = state.results.at(-1);
@@ -105,12 +107,12 @@ export function TurnScreen({
   }, [activeSeq, running]);
 
   useEffect(() => {
-    if (!running || remaining > 10 || remaining <= 0) {
+    if (!running || warmingUp || remaining > 10 || remaining <= 0) {
       return;
     }
 
     playSound("tick");
-  }, [remaining, running]);
+  }, [remaining, running, warmingUp]);
 
   useEffect(() => {
     if (!timeUp) {
@@ -226,12 +228,14 @@ export function TurnScreen({
       <div className="flex items-center gap-3">
         <div
           className={`stroke-hard hard-shadow font-display flex h-16 w-16 items-center justify-center rounded-full text-3xl ${
-            remaining <= 10 && running
-              ? "bg-fire text-cream"
-              : "bg-cream text-ink"
+            warmingUp
+              ? "bg-hit text-cream"
+              : remaining <= 10 && running
+                ? "bg-fire text-cream"
+                : "bg-cream text-ink"
           }`}
           style={
-            remaining <= 10 && running
+            remaining <= 10 && running && !warmingUp
               ? { animation: "shake 0.5s infinite" }
               : undefined
           }
@@ -239,8 +243,9 @@ export function TurnScreen({
           {remaining}
         </div>
         <p className="font-display text-ink max-w-[11rem] text-sm uppercase leading-tight">
-          {nameOf(state, turn.speaker_id)} explica · juiz{" "}
-          {nameOf(state, turn.judge_id)}
+          {warmingUp
+            ? "Leia a carta, o tempo ainda não começou"
+            : `${nameOf(state, turn.speaker_id)} explica · juiz ${nameOf(state, turn.judge_id)}`}
         </p>
       </div>
 

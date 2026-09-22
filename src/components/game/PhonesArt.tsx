@@ -1,10 +1,10 @@
 function Phone({
   label,
-  cor,
+  color,
   tilt,
 }: {
   label: string;
-  cor: string;
+  color: string;
   tilt: string;
 }) {
   return (
@@ -23,7 +23,7 @@ function Phone({
         </div>
       </div>
       <span
-        className={`font-display stroke-thin rounded-md px-1.5 py-0.5 text-[9px] uppercase leading-none ${cor}`}
+        className={`font-display stroke-thin rounded-md px-1.5 py-0.5 text-[9px] uppercase leading-none ${color}`}
       >
         {label}
       </span>
@@ -36,13 +36,13 @@ export function PhonesArt() {
     <div className="flex items-start justify-center gap-2">
       <Phone
         label="quem explica"
-        cor="bg-team-red text-cream"
+        color="bg-team-red text-cream"
         tilt="-6deg"
       />
       <span className="font-display text-cream mt-7 text-3xl leading-none">
         =
       </span>
-      <Phone label="o juiz" cor="bg-team-blue text-cream" tilt="6deg" />
+      <Phone label="o juiz" color="bg-team-blue text-cream" tilt="6deg" />
     </div>
   );
 }

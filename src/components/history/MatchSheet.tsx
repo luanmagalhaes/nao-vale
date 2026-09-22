@@ -12,9 +12,9 @@ const backgrounds: Record<Team, string> = {
 };
 
 const deckNames: Record<string, string> = {
-  suave: "De boa",
-  apimentado: "Picante + extra",
-  misto: "Misto",
+  mild: "De boa",
+  hot: "Picante + extra",
+  mixed: "Misto",
 };
 
 function longDate(iso: string): string {
@@ -51,7 +51,7 @@ export function MatchSheet({
       className="fixed inset-0 z-[68] flex items-end justify-center p-3 sm:items-center"
       role="dialog"
       aria-modal="true"
-      aria-label={`Partida da room ${match.room_code}`}
+      aria-label={`Partida da sala ${match.room_code}`}
     >
       <button
         type="button"
@@ -69,7 +69,7 @@ export function MatchSheet({
       >
         <div className="bg-yellow dots shrink-0 border-b-4 border-ink px-4 py-3 text-center">
           <p className="font-display text-xs uppercase tracking-[0.2em] opacity-70">
-            room {match.room_code} · {deckNames[match.deck_mode] ?? match.deck_mode}
+            sala {match.room_code} · {deckNames[match.deck_mode] ?? match.deck_mode}
           </p>
           <h2 className="font-display text-2xl uppercase leading-tight">
             {match.winner === "tie"
@@ -87,7 +87,7 @@ export function MatchSheet({
               const people = match.players.filter(
                 (person) => person.team === team,
               );
-              const pontos =
+              const points =
                 team === "red"
                   ? match.score_red
                   : match.score_blue;
@@ -100,11 +100,11 @@ export function MatchSheet({
                   }`}
                 >
                   <div className="text-center">
-                    <p className="font-display text-cream text-xs uppercase leading-none">
+                    <p className="font-display text-cream pb-1 text-xs uppercase leading-none">
                       Time {copy.teams[team]}
                     </p>
-                    <p className="font-display text-cream outline-text-thin text-3xl leading-none">
-                      {pontos}
+                    <p className="font-display text-cream outline-text-thin pb-1 text-3xl leading-tight">
+                      {points}
                     </p>
                     <p className="text-cream text-[10px] font-bold uppercase opacity-80">
                       {people.length} {people.length === 1 ? "pessoa" : "pessoas"}
@@ -137,7 +137,7 @@ export function MatchSheet({
         </div>
 
         <div className="border-ink/10 shrink-0 border-t-2 p-3">
-          <Button cor="tinta" onClick={onClose}>
+          <Button color="ink" onClick={onClose}>
             Fechar
           </Button>
         </div>

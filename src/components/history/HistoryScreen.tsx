@@ -199,7 +199,7 @@ export function HistoryScreen() {
                             teamColors[team]
                           } ${match.winner === team ? "" : "opacity-70"}`}
                         >
-                          <span className="font-display text-cream text-center text-2xl leading-none">
+                          <span className="font-display text-cream pb-0.5 text-center text-2xl leading-tight">
                             {points}
                           </span>
                           <span className="text-cream text-center text-[11px] font-bold leading-tight">
@@ -221,7 +221,7 @@ export function HistoryScreen() {
       ) : null}
 
       <div className="w-full max-w-sm">
-        <Button cor="tinta" onClick={() => router.push("/")}>
+        <Button color="ink" onClick={() => router.push("/")}>
           Voltar
         </Button>
       </div>

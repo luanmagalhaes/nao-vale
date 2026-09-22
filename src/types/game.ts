@@ -24,6 +24,7 @@ export interface PlayerRow {
   team: Team | null;
   is_host: boolean;
   has_spoken: boolean;
+  spoke_count: number;
   judged_count: number;
   seat: number;
 }

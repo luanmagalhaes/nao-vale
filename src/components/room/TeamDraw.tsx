@@ -67,10 +67,10 @@ export function TeamDraw({
               style={{ animation: `column-in 0.45s ${coluna * 0.12}s both` }}
             >
               <div className="text-center">
-                <p className="font-display text-cream text-sm uppercase leading-none">
+                <p className="font-display text-cream pb-1 text-sm uppercase leading-none">
                   {teamNames[team]}
                 </p>
-                <p className="font-display text-cream outline-text-thin text-3xl leading-none">
+                <p className="font-display text-cream outline-text-thin pb-1 text-3xl leading-tight">
                   {byTeam(team).length}
                 </p>
               </div>
@@ -97,7 +97,7 @@ export function TeamDraw({
           className="w-full max-w-sm"
           style={{ animation: "rise-in 0.4s 0.6s both" }}
         >
-          <Button cor="banana" onClick={onClose}>
+          <Button color="yellow" onClick={onClose}>
             Fechar
           </Button>
         </div>

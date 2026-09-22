@@ -113,10 +113,10 @@ export function LobbyScreen({
         className="bg-ink stroke-hard hard-shadow-lg flex w-full max-w-sm flex-col items-center rounded-3xl py-4"
         style={{ animation: "rise-in 0.4s both" }}
       >
-        <span className="font-display text-yellow text-xs uppercase tracking-[0.3em]">
+        <span className="font-display text-yellow pb-2 text-xs uppercase tracking-[0.3em]">
           {copied ? "Copiado!" : "Código da sala"}
         </span>
-        <span className="font-display text-cream text-6xl leading-none tracking-[0.2em]">
+        <span className="font-display text-cream pb-1 text-6xl leading-tight tracking-[0.2em]">
           {room.code}
         </span>
       </button>
@@ -138,10 +138,10 @@ export function LobbyScreen({
                   className={`stroke-hard hard-shadow flex flex-col gap-2 rounded-2xl p-2 ${teamColors[team]}`}
                 >
                   <div className="text-center">
-                    <p className="font-display text-cream text-xs uppercase leading-none">
+                    <p className="font-display text-cream pb-1 text-xs uppercase leading-none">
                       Time {copy.teams[team]}
                     </p>
-                    <p className="font-display text-cream outline-text-thin text-3xl leading-none">
+                    <p className="font-display text-cream outline-text-thin pb-1 text-3xl leading-tight">
                       {teamPlayers.length}
                     </p>
                   </div>
@@ -249,7 +249,7 @@ export function LobbyScreen({
         {me.is_host ? (
           <>
             <Button
-              cor="tinta"
+              color="ink"
               disabled={drawing || players.length < minPlayers}
               onClick={runDraw}
             >
@@ -260,7 +260,7 @@ export function LobbyScreen({
                   : "Sortear times"}
             </Button>
             <Button
-              cor="fogo"
+              color="fire"
               disabled={!ready}
               onClick={() => run(() => api.startGame(room.code, token))}
             >
@@ -275,7 +275,7 @@ export function LobbyScreen({
           </p>
         )}
 
-        <Button cor="ceu" onClick={onHelp}>
+        <Button color="sky" onClick={onHelp}>
           Como se joga
         </Button>
 

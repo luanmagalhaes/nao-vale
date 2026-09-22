@@ -81,25 +81,72 @@ export interface TurnPlan {
   team: Team;
 }
 
+function pickTeam(
+  pending: readonly PlayerRow[],
+  previousTeam: Team | null,
+  redTurns: number,
+  blueTurns: number,
+): Team {
+  if (pending.length === 0) {
+    return redTurns < blueTurns ? "red" : "blue";
+  }
+
+  const preferred = previousTeam ? rivalOf(previousTeam) : "red";
+
+  return pending.some((player) => player.team === preferred)
+    ? preferred
+    : rivalOf(preferred);
+}
+
+function pickSpeaker(
+  withTeam: readonly PlayerRow[],
+  pending: readonly PlayerRow[],
+  team: Team,
+): PlayerRow | undefined {
+  const firstTimers = pending
+    .filter((player) => player.team === team)
+    .sort((a, b) => a.seat - b.seat);
+
+  if (firstTimers.length > 0) {
+    return firstTimers[0];
+  }
+
+  const squad = withTeam.filter((player) => player.team === team);
+
+  if (squad.length === 0) {
+    return undefined;
+  }
+
+  const fewest = Math.min(...squad.map((player) => player.spoke_count));
+  const leastUsed = squad.filter((player) => player.spoke_count === fewest);
+
+  return leastUsed[Math.floor(Math.random() * leastUsed.length)];
+}
+
+export function turnsTaken(
+  players: readonly PlayerRow[],
+  team: Team,
+): number {
+  return players
+    .filter((player) => player.team === team)
+    .reduce((total, player) => total + player.spoke_count, 0);
+}
+
 export function nextTurn(
   players: readonly PlayerRow[],
   previousTeam: Team | null,
 ): TurnPlan | null {
-  const pending = players.filter(
-    (player) => !player.has_spoken && player.team !== null,
-  );
+  const withTeam = players.filter((player) => player.team !== null);
+  const pending = withTeam.filter((player) => player.spoke_count === 0);
+  const redTurns = turnsTaken(withTeam, "red");
+  const blueTurns = turnsTaken(withTeam, "blue");
 
-  if (pending.length === 0) {
+  if (pending.length === 0 && redTurns === blueTurns) {
     return null;
   }
 
-  const preferred = previousTeam ? rivalOf(previousTeam) : "red";
-  const hasPreferred = pending.some((player) => player.team === preferred);
-  const team = hasPreferred ? preferred : rivalOf(preferred);
-
-  const speaker = [...pending]
-    .filter((player) => player.team === team)
-    .sort((a, b) => a.seat - b.seat)[0];
+  const team = pickTeam(pending, previousTeam, redTurns, blueTurns);
+  const speaker = pickSpeaker(withTeam, pending, team);
 
   if (!speaker) {
     return null;
@@ -121,7 +168,16 @@ export function nextTurn(
 export function isGameOver(players: readonly PlayerRow[]): boolean {
   const withTeam = players.filter((player) => player.team !== null);
 
-  return withTeam.length > 0 && withTeam.every((player) => player.has_spoken);
+  if (withTeam.length === 0) {
+    return false;
+  }
+
+  const everyoneSpoke = withTeam.every((player) => player.spoke_count > 0);
+
+  return (
+    everyoneSpoke &&
+    turnsTaken(withTeam, "red") === turnsTaken(withTeam, "blue")
+  );
 }
 
 export function shuffle<T>(items: readonly T[]): T[] {

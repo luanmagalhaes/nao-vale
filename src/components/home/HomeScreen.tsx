@@ -17,11 +17,11 @@ import {
   tutorialOnServer,
 } from "@/lib/session";
 
-type Modo = "escolha" | "entrando";
+type Mode = "choice" | "joining";
 
 export function HomeScreen() {
   const router = useRouter();
-  const [mode, setModo] = useState<Modo>("escolha");
+  const [mode, setMode] = useState<Mode>("choice");
   const [name, setNome] = useState("");
   const [codigo, setCodigo] = useState("");
   const [error, setError] = useState("");
@@ -89,16 +89,16 @@ export function HomeScreen() {
           />
         </label>
 
-        {mode === "escolha" ? (
+        {mode === "choice" ? (
           <div className="flex flex-col gap-3">
             <Button
-              cor="fogo"
+              color="fire"
               disabled={busy}
               onClick={() => dispatch(() => api.createRoom(name.trim(), "mild"))}
             >
               {copy.home.create}
             </Button>
-            <Button cor="ceu" onClick={() => setModo("entrando")}>
+            <Button color="sky" onClick={() => setMode("joining")}>
               {copy.home.join}
             </Button>
           </div>
@@ -121,10 +121,10 @@ export function HomeScreen() {
                 className="bg-cream stroke-hard hard-shadow font-display mt-2 w-full rounded-2xl px-4 py-3 text-center text-5xl tracking-[0.3em] outline-none placeholder:opacity-30"
               />
             </label>
-            <Button cor="ceu" disabled={busy} onClick={joinRoom}>
+            <Button color="sky" disabled={busy} onClick={joinRoom}>
               {copy.home.confirmJoin}
             </Button>
-            <Button cor="creme" onClick={() => setModo("escolha")}>
+            <Button color="cream" onClick={() => setMode("choice")}>
               {copy.home.back}
             </Button>
           </div>

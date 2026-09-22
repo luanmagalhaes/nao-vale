@@ -100,7 +100,7 @@ export function VictoryScreen({
 
         {state.me.is_host ? (
           <Button
-            cor="fogo"
+            color="fire"
             onClick={async () => {
               try {
                 await api.restart(state.room.code, token);
@@ -121,7 +121,7 @@ export function VictoryScreen({
           </p>
         )}
 
-        <Button cor="tinta" onClick={() => router.push("/history")}>
+        <Button color="ink" onClick={() => router.push("/history")}>
           Ver o histórico
         </Button>
 

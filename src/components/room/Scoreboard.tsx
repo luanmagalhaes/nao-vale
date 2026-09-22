@@ -23,11 +23,11 @@ export function Scoreboard({
             labels[team].background
           } ${highlight === team ? "scale-105" : "opacity-90"}`}
         >
-          <span className="font-display text-cream text-xs uppercase tracking-wider">
+          <span className="font-display text-cream pb-1 text-xs uppercase tracking-wider">
             {labels[team].title}
           </span>
           <span
-            className="font-display text-cream outline-text-thin text-4xl leading-none"
+            className="font-display text-cream outline-text-thin pb-1 text-4xl leading-tight"
             style={
               pulsing === team
                 ? { animation: "score-pop 0.5s ease-out" }

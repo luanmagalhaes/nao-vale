@@ -284,12 +284,12 @@ export function HowToPlay({ onClose }: { onClose: () => void }) {
 
           <div className="flex gap-2">
             {step > 0 ? (
-              <Button cor="creme" onClick={() => setPasso(step - 1)}>
+              <Button color="cream" onClick={() => setPasso(step - 1)}>
                 Voltar
               </Button>
             ) : null}
             <Button
-              cor={isLast ? "fogo" : "tinta"}
+              color={isLast ? "fogo" : "tinta"}
               onClick={() => (isLast ? onClose() : setPasso(step + 1))}
             >
               {isLast ? "Valeu, pai. Entendido" : "Saquei"}
