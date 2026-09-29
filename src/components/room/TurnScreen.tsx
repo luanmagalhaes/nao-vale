@@ -5,7 +5,7 @@ import { CardView } from "@/components/game/CardView";
 import { Scoreboard } from "@/components/room/Scoreboard";
 import { Button } from "@/components/ui/Button";
 import { api, type RoomState } from "@/lib/api/client";
-import { useNow } from "@/hooks/useNow";
+import { leftMsFor, useNow } from "@/hooks/useNow";
 import { rivalOf } from "@/lib/game/rules";
 import { playSound } from "@/lib/sound";
 import type { Card, Outcome, Team } from "@/types/game";
@@ -50,9 +50,9 @@ export function TurnScreen({
   const activeSeq =
     localAhead && localCard ? localCard.seq : (turn?.card_seq ?? 0);
 
-  const endsAt = turn?.ends_at ? new Date(turn.ends_at).getTime() : 0;
+  const leftMs = leftMsFor(turn?.ends_at, state.clockOffset, now);
   const secondsLeft = running
-    ? Math.max(0, Math.ceil((endsAt - now) / 1000))
+    ? Math.max(0, Math.ceil(leftMs / 1000))
     : room.turn_seconds;
   const remaining = Math.min(secondsLeft, room.turn_seconds);
   const warmingUp = running && secondsLeft > room.turn_seconds;

@@ -25,6 +25,7 @@ export interface RoomState {
   score: Score;
   results: ResultRow[];
   now: string;
+  clockOffset: number;
 }
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {

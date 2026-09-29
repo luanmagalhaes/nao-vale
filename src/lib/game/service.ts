@@ -623,10 +623,24 @@ export async function endTurn(room: RoomRow) {
     return;
   }
 
-  await serverClient()
+  const ranOut = turn.ends_at
+    ? Date.parse(turn.ends_at) <= Date.now() + 1500
+    : false;
+
+  if (!ranOut) {
+    failure(409);
+  }
+
+  const { data: claimed } = await serverClient()
     .from("nv_turns")
     .update({ status: "done" })
-    .eq("id", turn.id);
+    .eq("id", turn.id)
+    .neq("status", "done")
+    .select("id");
+
+  if (((claimed as { id: string }[] | null) ?? []).length === 0) {
+    return;
+  }
 
   const { data: speakerRow } = await serverClient()
     .from("nv_players")

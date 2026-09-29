@@ -17,3 +17,15 @@ export function useNow(active: boolean) {
 
   return now;
 }
+
+export function leftMsFor(
+  endsAt: string | null | undefined,
+  clockOffset: number,
+  now: number,
+) {
+  if (!endsAt) {
+    return 0;
+  }
+
+  return Date.parse(endsAt) - (now + clockOffset);
+}

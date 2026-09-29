@@ -19,7 +19,10 @@ export function useRoom(code: string | null, token: string | null) {
     try {
       const proximo = await api.state(code, token);
       roomIdRef.current = proximo.room.id;
-      setEstado(proximo);
+      setEstado({
+        ...proximo,
+        clockOffset: proximo.now ? Date.parse(proximo.now) - Date.now() : 0,
+      });
       setErro(null);
     } catch (failure) {
       setErro(
