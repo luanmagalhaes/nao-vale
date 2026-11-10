@@ -36,6 +36,7 @@ async function recycleStaleRooms() {
     Date.now() - recycleAfterHours * 60 * 60 * 1000,
   ).toISOString();
 
+  await closeStaleMatches();
   await serverClient().from("nv_rooms").delete().lt("updated_at", limit);
 }
 
