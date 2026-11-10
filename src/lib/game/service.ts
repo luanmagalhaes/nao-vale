@@ -1,3 +1,4 @@
+import type { MatchEnding } from "@/types/game";
 import { randomUUID } from "node:crypto";
 import { ServiceError, messageFor } from "@/lib/messages";
 import { serverClient } from "@/lib/supabase/server";
@@ -423,6 +424,7 @@ export async function startGame(room: RoomRow, eu: PlayerRow) {
       status: "playing",
       current_turn_id: turn.id,
       round_number: 1,
+      started_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
     .eq("id", room.id);
@@ -715,7 +717,7 @@ export async function endTurn(room: RoomRow) {
     .eq("id", room.id);
 }
 
-async function saveMatch(room: RoomRow, players: PlayerRow[]) {
+async function saveMatch(room: RoomRow, players: PlayerRow[], closedBy: MatchEnding = "target") {
   if (room.is_test) {
     return;
   }
@@ -725,6 +727,7 @@ async function saveMatch(room: RoomRow, players: PlayerRow[]) {
 
   await serverClient().from("nv_matches").insert({
     room_code: room.code,
+    closed_by: closedBy,
     deck_mode: room.deck_mode,
     score_red: score.red,
     score_blue: score.blue,
@@ -780,4 +783,47 @@ export async function shuffleTeams(room: RoomRow, eu: PlayerRow) {
       serverClient().from("nv_players").update({ team }).eq("id", playerId),
     ),
   );
+}
+
+export const staleMatchHours = 5;
+
+export async function closeStaleMatches(): Promise<string[]> {
+  const client = serverClient();
+  const deadline = new Date(Date.now() - staleMatchHours * 60 * 60 * 1000).toISOString();
+  const { data } = await client
+    .from("nv_rooms")
+    .select("*")
+    .eq("status", "playing")
+    .lt("started_at", deadline);
+
+  const stale = (data ?? []) as RoomRow[];
+  const closed: string[] = [];
+
+  for (const room of stale) {
+    const { data: rows } = await client
+      .from("nv_players")
+      .select("*")
+      .eq("room_id", room.id)
+      .order("seat", { ascending: true });
+
+    const { data: done } = await client
+      .from("nv_rooms")
+      .update({
+        status: "done",
+        current_turn_id: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", room.id)
+      .eq("status", "playing")
+      .select("id");
+
+    if (((done ?? []) as unknown[]).length === 0) {
+      continue;
+    }
+
+    await saveMatch(room, (rows as PlayerRow[] | null) ?? [], "timeout");
+    closed.push(room.code);
+  }
+
+  return closed;
 }

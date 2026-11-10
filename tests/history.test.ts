@@ -21,6 +21,7 @@ function match(parcial: Partial<MatchRow>): MatchRow {
       { name: "Bruno", team: "blue" },
     ],
     cards_played: 4,
+    closed_by: "target",
     finished_at: "2026-09-21T20:00:00.000Z",
     ...parcial,
   };

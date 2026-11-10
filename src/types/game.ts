@@ -38,6 +38,7 @@ export interface RoomRow {
   status: RoomStatus;
   current_turn_id: string | null;
   round_number: number;
+  started_at: string | null;
   is_test: boolean;
 }
 
@@ -74,6 +75,8 @@ export interface MatchPlayer {
   team: Team;
 }
 
+export type MatchEnding = "target" | "timeout";
+
 export interface MatchRow {
   id: string;
   room_code: string;
@@ -83,6 +86,7 @@ export interface MatchRow {
   winner: Team | "tie" | null;
   players: MatchPlayer[];
   cards_played: number;
+  closed_by: MatchEnding;
   finished_at: string;
 }
 
